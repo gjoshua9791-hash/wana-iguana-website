@@ -1,0 +1,70 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #faf7f2;
+  color: #241c15;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.hero {
+  padding: 64px 20px;
+  text-align: center;
+  background: #fff3df;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 12vw, 5rem);
+  line-height: 1;
+}
+
+.heroText {
+  max-width: 520px;
+  margin: 20px auto 0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.heroButtons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.primaryButton, .secondaryButton {
+  padding: 14px 22px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.primaryButton {
+  background: #241c15;
+  color: white;
+}
+
+.secondaryButton {
+  border: 2px solid #241c15;
+  color: #241c15;
+}
