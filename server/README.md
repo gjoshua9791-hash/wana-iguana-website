@@ -7,7 +7,11 @@ single health check so we have a runnable, verifiable starting point.
 
 ## Requirements
 
-- **Node.js 18.18+** (developed and verified on Node 22). Check with `node --version`.
+- **Node.js `^20.19.0 || ^22.13.0 || >=24`.** Node 18 is **not** supported: the
+  pinned ESLint 10 toolchain requires Node 20.19+, 22.13+, or 24+. Check with
+  `node --version`.
+- **Tested environment:** Node **v24.11.1**, npm **11.6.2** (the versions this
+  milestone was built, linted, and run on).
 - npm (bundled with Node).
 
 ## Setup

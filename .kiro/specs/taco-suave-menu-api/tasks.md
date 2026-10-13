@@ -23,7 +23,7 @@ Guardrails that apply to every task:
 
 ## Phase A — Backend scaffold (preserve the frontend)
 
-### Task A1 — Decide repo layout & add backend folder skeleton
+- [x] **Task A1 — Decide repo layout & add backend folder skeleton**
 Create a `server/` folder alongside the existing frontend so the Vite app is untouched.
 - **AC refs:** AC17
 - **Files:** `server/` (empty dirs: `server/src/`), `server/README.md` (one paragraph:
@@ -33,7 +33,7 @@ Create a `server/` folder alongside the existing frontend so the Vite app is unt
   work exactly as before (nothing in `src/` changed).
 - **Manual step?** No.
 
-### Task A2 — Initialize the Node + Express + TypeScript project
+- [x] **Task A2 — Initialize the Node + Express + TypeScript project**
 Set up the backend package, TypeScript config, scripts, and a minimal health server.
 - **Dependency installation belongs here (A2).** Backend dependencies **are
   installed in this task** and `server/package-lock.json` is committed. The earlier
@@ -55,7 +55,7 @@ Set up the backend package, TypeScript config, scripts, and a minimal health ser
   returns 200 with `{"ok":true}` **without** any database credentials present.
 - **Manual step?** No.
 
-### Task A3 — Config & environment loading (no secrets in Git)
+- [ ] **Task A3 — Config & environment loading (no secrets in Git)**
 Add typed config loading that reads the database connection from server-side env vars.
 - **AC refs:** AC15
 - **Files:** `server/src/config.ts` (reads `DATABASE_URL` etc. from `process.env`,
@@ -71,7 +71,7 @@ Add typed config loading that reads the database connection from server-side env
 
 ## Phase B — Database migrations & seed (version-controlled SQL)
 
-### Task B1 — Migration: create the five catalog tables
+- [ ] **Task B1 — Migration: create the five catalog tables**
 Author the first migration that creates the schema exactly as in design §1.
 - **AC refs:** AC1, AC14
 - **Files:** `server/migrations/0001_create_catalog.sql` (tables `menu_item`,
@@ -83,7 +83,7 @@ Author the first migration that creates the schema exactly as in design §1.
   `price_cents`); `min_select`/`max_select` live on `variant_modifier_group`.
 - **Manual step?** No (applying it is Phase C).
 
-### Task B2 — Migration: partial unique index for at-most-one active default
+- [ ] **Task B2 — Migration: partial unique index for at-most-one active default**
 Add the index enforcing *at most one* active default variant per item.
 - **AC refs:** AC4
 - **Files:** `server/migrations/0002_one_active_default.sql` (the
@@ -93,7 +93,7 @@ Add the index enforcing *at most one* active default variant per item.
   (zero is allowed; the API returns 404 for no-active-default).
 - **Manual step?** No.
 
-### Task B3 — Migration: seed Taco Suave (verified data)
+- [ ] **Task B3 — Migration: seed Taco Suave (verified data)**
 Insert the verified Taco Suave rows from design §2 example rows.
 - **AC refs:** AC1, AC3, AC5, AC14
 - **Files:** `server/migrations/0004_seed_taco_suave.sql` (inserts `taco-suave`,
@@ -109,7 +109,7 @@ Insert the verified Taco Suave rows from design §2 example rows.
 
 ## Phase C — Supabase dev setup, access control & seeding (manual-heavy)
 
-### Task C1 — 🔧 Create/confirm the shared Supabase dev project & get the connection string
+- [ ] **Task C1 — 🔧 Create/confirm the shared Supabase dev project & get the connection string**
 One teammate sets up the single shared dev project and shares connection details
 securely (not in Git, not in chat logs).
 - **AC refs:** AC15
@@ -126,7 +126,7 @@ securely (not in Git, not in chat logs).
 > application is **documented and tracked** (C2) so teammates never blindly reapply
 > migrations against the shared database.
 
-### Task C2 — 🔧 Apply schema + access-control migrations, with tracking (before seeding)
+- [ ] **Task C2 — 🔧 Apply schema + access-control migrations, with tracking (before seeding)**
 Apply the structural and access-control migrations to the shared project, and set up
 tracking so each migration is applied exactly once.
 - **AC refs:** AC1, AC15
@@ -146,7 +146,7 @@ tracking so each migration is applied exactly once.
 - **Manual step?** 🔧 Yes — running migrations against the hosted DB + dashboard
   settings for access control.
 
-### Task C3 — 🔧 Seed the shared catalog (after access controls)
+- [ ] **Task C3 — 🔧 Seed the shared catalog (after access controls)**
 Apply the Taco Suave seed migration to the now-locked-down shared database.
 - **AC refs:** AC1, AC3, AC5, AC14
 - **Files:** apply `server/migrations/0004_seed_taco_suave.sql` (from B3); record it in
@@ -161,7 +161,7 @@ Apply the Taco Suave seed migration to the now-locked-down shared database.
 
 ## Phase D — Database-backed GET endpoint
 
-### Task D1 — Database client & query module
+- [ ] **Task D1 — Database client & query module**
 Add a small Postgres access layer the route will use.
 - **AC refs:** AC1
 - **Files:** `server/src/db.ts` (creates the pool/client from `config.ts`),
@@ -171,7 +171,7 @@ Add a small Postgres access layer the route will use.
   variant first, and joins only that variant's groups/options (no variant merging).
 - **Manual step?** No.
 
-### Task D2 — Response mapping (rows → nested JSON)
+- [ ] **Task D2 — Response mapping (rows → nested JSON)**
 Transform flat SQL rows into the API JSON shape from design §3.
 - **AC refs:** AC2, AC3, AC14
 - **Files:** `server/src/menu/mapRows.ts` (collapses rows into
@@ -182,7 +182,7 @@ Transform flat SQL rows into the API JSON shape from design §3.
   `priceDeltaCents` per option, stable IDs, and integer cents; no hard-coded item data.
 - **Manual step?** No.
 
-### Task D3 — Route handler with status codes
+- [ ] **Task D3 — Route handler with status codes**
 Wire `GET /api/menu/items/:itemId` to the query + mapper with correct statuses.
 - **AC refs:** AC2, AC7, AC8
 - **Files:** `server/src/menu/router.ts`, mount it in `server/src/index.ts`.
@@ -192,7 +192,7 @@ Wire `GET /api/menu/items/:itemId` to the query + mapper with correct statuses.
   thrown DB error.
 - **Manual step?** No.
 
-### Task D4 — Backend tests (default-variant & not-found rules)
+- [ ] **Task D4 — Backend tests (default-variant & not-found rules)**
 Automated tests proving the key invariants.
 - **Database integration tests require an isolated test environment.** These tests
   insert and delete rows (e.g. attempting a second active default), so they must run
@@ -221,7 +221,7 @@ Automated tests proving the key invariants.
 
 ## Phase E — In-place React display
 
-### Task E1 — Dev proxy so the frontend can call the API by relative URL
+- [ ] **Task E1 — Dev proxy so the frontend can call the API by relative URL**
 Add a Vite dev proxy mapping `/api` → the Express server.
 - **AC refs:** AC2, AC17
 - **Files:** `vite.config.js` (add `server.proxy` for `/api`).
@@ -230,7 +230,7 @@ Add a Vite dev proxy mapping `/api` → the Express server.
   browser reaches Express; existing frontend behavior is otherwise unchanged.
 - **Manual step?** No.
 
-### Task E2 — `TacoSuaveCard` component: fetch + loading/error/not-found states
+- [ ] **Task E2 — `TacoSuaveCard` component: fetch + loading/error/not-found states**
 Build the component with its four states (no selection UI yet).
 - **AC refs:** AC5, AC6, AC7, AC8
 - **Files:** `src/components/TacoSuaveCard.jsx`, styles as needed in `src/App.css`.
@@ -241,7 +241,7 @@ Build the component with its four states (no selection UI yet).
   `basePriceCents`.
 - **Manual step?** No.
 
-### Task E3 — `TacoSuaveCard`: protein selection UI (exactly-one semantics, starts empty)
+- [ ] **Task E3 — `TacoSuaveCard`: protein selection UI (exactly-one semantics, starts empty)**
 Add the "Choose one" radio group.
 - **AC refs:** AC3, AC9, AC10, AC11, AC12, AC13
 - **Files:** `src/components/TacoSuaveCard.jsx` (extend E2).
@@ -253,7 +253,7 @@ Add the "Choose one" radio group.
   API, not enforced by a submit here.
 - **Manual step?** No.
 
-### Task E4 — Swap Taco Suave in place in the menu (no double display)
+- [ ] **Task E4 — Swap Taco Suave in place in the menu (no double display)**
 Replace the static Taco Suave row with `TacoSuaveCard` in its existing position.
 - **AC refs:** AC16, AC17
 - **Files:** `src/data/menu.js` (add stable `id: "taco-suave"` to that entry only),
@@ -268,7 +268,7 @@ Replace the static Taco Suave row with `TacoSuaveCard` in its existing position.
 
 ## Phase F — Verification & teammate documentation
 
-### Task F1 — End-to-end verification (data proven to come from PostgreSQL)
+- [ ] **Task F1 — End-to-end verification (data proven to come from PostgreSQL)**
 Run the verification plan from design §8 against the shared dev DB (edit seed rows
 only, revert after each).
 - **AC refs:** AC1, AC3, AC4, AC5, AC8
@@ -283,7 +283,7 @@ only, revert after each).
   4. 404 for unknown id; error+Retry when the DB is unreachable.
 - **Manual step?** 🔧 Yes — editing dev data in Supabase and observing the UI.
 
-### Task F2 — Secret-leak & public-write checks
+- [ ] **Task F2 — Secret-leak & public-write checks**
 Confirm no secrets leak and the catalog is not publicly writable.
 - **AC refs:** AC15
 - **Files:** append results to `server/VERIFICATION.md`.
@@ -293,7 +293,7 @@ Confirm no secrets leak and the catalog is not publicly writable.
 - **Manual step?** 🔧 Partially — inspecting the browser network tab / attempting a
   write.
 
-### Task F3 — Teammate setup documentation
+- [ ] **Task F3 — Teammate setup documentation**
 Write the "get it running locally" guide for the three of us.
 - **AC refs:** AC15, AC17
 - **Files:** `server/README.md` (expand): prerequisites, copying `.env.example` →

@@ -5,6 +5,49 @@ local repository. It contains **only** the backend scaffold, the feature spec
 documents, and the updated root README. It does **not** contain frontend source,
 dependencies, build output, git metadata, or any real secrets.
 
+---
+
+## ✅ Current status (local recreation complete — this milestone)
+
+> This section reflects the **current state in the local repository** and supersedes
+> the "Missing backend files" and "Outstanding verification" sections below, which are
+> **retained as historical context** describing the browser-export state.
+
+The two files that were missing from the browser export have been **recreated locally**
+on `feature/taco-suave-menu-api`, consistent with the existing `server/tsconfig.json`,
+`server/eslint.config.js`, `server/README.md`, and the approved spec:
+
+- `server/package.json` — Express + TypeScript deps and `dev` / `build` / `start` /
+  `lint` scripts.
+- `server/src/index.ts` — the real Express app with `GET /health` (port **3001** by
+  default, `PORT` override), with **no** database/Supabase wiring.
+
+**Actual checks performed and passed (not a substitute server):**
+
+- `cd server && npm install` → `server/package-lock.json` produced (0 vulnerabilities).
+- `npm run build` → TypeScript compiled cleanly to `dist/`.
+- `npm run lint` → 0 errors, 0 warnings.
+- `npm start` (compiled `node dist/index.js`) → `curl -i http://localhost:3001/health`
+  returned **HTTP 200** with `{"ok":true}` (served by Express; verified with no `.env`
+  and no database credentials present).
+- `PORT=4000 node dist/index.js` → `/health` served on 4000; port 3001 refused
+  connections, confirming the override is honored by the real backend.
+- Frontend re-checked: `npm run build` and `npm run lint` both pass. The root
+  `eslint.config.js` now ignores `server/` so the root lint scans only the frontend;
+  the backend keeps its own separate lint via `server/eslint.config.js`.
+
+**Tested environment:** Node **v24.11.1**, npm **11.6.2**.
+
+> **Node version correction:** the earlier "Node.js 18.18+" claim is **inaccurate**.
+> The pinned ESLint 10 toolchain requires Node `^20.19.0 || ^22.13.0 || >=24`, so
+> Node 18 is **not** supported. `server/package.json` `engines` and `server/README.md`
+> have been updated accordingly.
+
+The historical sections below describe the original browser-export handoff and are
+kept for provenance.
+
+---
+
 ## Source state (browser workspace)
 
 - **Branch:** `feature/taco-suave-menu-api`
