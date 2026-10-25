@@ -1,8 +1,6 @@
 import MenuItem from './MenuItem'
 
-export function categoryId(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-}
+import { categoryId } from '../utils/categoryId'
 
 export default function MenuSection({ section }) {
   const id = categoryId(section.category)
