@@ -57,7 +57,10 @@ function App() {
 
                 {isCompact ? (<div className="compactItems">
                   {section.items.map((item) => (
-                    <span key={item.name}>{item.name}</span>
+                    <span key = {item.name}>
+                      {item.name} 
+                      {item.price && ` — ${item.price}`}
+                    </span>
                   ))}
                 </div>) : (
                   <div className="menuRows">
