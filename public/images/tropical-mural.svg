@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Painted tropical beach with sun, palms and waves">
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop stop-color="#ffbf91"/>
+      <stop offset=".52" stop-color="#ffe2ad"/>
+      <stop offset="1" stop-color="#bdeadd"/>
+    </linearGradient>
+    <linearGradient id="sea" x2="0" y2="1">
+      <stop stop-color="#40bdb7"/>
+      <stop offset=".5" stop-color="#168f9b"/>
+      <stop offset="1" stop-color="#0d6279"/>
+    </linearGradient>
+    <radialGradient id="sun">
+      <stop stop-color="#fff2b5"/>
+      <stop offset=".65" stop-color="#ffd781"/>
+      <stop offset="1" stop-color="#ffc077" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="paper" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence baseFrequency=".017" numOctaves="3" seed="8" result="noise" type="fractalNoise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="9"/>
+    </filter>
+    <filter id="wash" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="28"/></filter>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h1600v900H0z"/>
+  <g filter="url(#wash)" opacity=".48">
+    <ellipse cx="142" cy="230" rx="310" ry="160" fill="#f57976"/>
+    <ellipse cx="807" cy="145" rx="390" ry="170" fill="#ffd27e"/>
+    <ellipse cx="1495" cy="220" rx="370" ry="190" fill="#e58b9d"/>
+    <ellipse cx="445" cy="545" rx="330" ry="100" fill="#71d5bb"/>
+  </g>
+  <circle cx="1097" cy="311" r="177" fill="url(#sun)"/>
+  <circle cx="1097" cy="311" r="105" fill="#ffe1a0" opacity=".85" filter="url(#paper)"/>
+  <path d="M0 493c182-25 296 32 457 1s249-27 379 0 227 36 368 4 278-22 396 5v397H0z" fill="url(#sea)" filter="url(#paper)"/>
+  <g fill="none" stroke="#e2fff1" stroke-linecap="round" opacity=".65">
+    <path d="M-40 546c183-57 269 48 448 0s311-33 461 4 251-7 385-30 235-5 386 33" stroke-width="10"/>
+    <path d="M-20 614c192-45 311 45 464 5s276-27 396 6 255 1 419-26 239-5 355 35" stroke-width="7"/>
+    <path d="M0 728c134-34 280 25 418 1s272-40 450-1 329-41 489-20 174 23 266 6" stroke-width="8"/>
+    <path d="M54 798c119-14 214 15 297 0m556 14c133-22 179 12 284 0" stroke-width="4"/>
+  </g>
+  <g fill="#1b7770" opacity=".9" filter="url(#paper)">
+    <path d="M1512 850c-66-193-77-342-49-559l21-4c-13 165-1 342 64 563z"/>
+    <path d="M1475 308c-99-84-197-58-294-5 142-22 194 18 294 35z"/>
+    <path d="M1472 315c-98-8-154 31-228 132 100-57 166-79 237-96z"/>
+    <path d="M1480 323c13-98-43-169-133-236 49 93 66 154 102 245z"/>
+    <path d="M1480 320c61-90 143-122 273-128-115 50-177 104-255 160z"/>
+    <path d="M1484 330c99-31 164 0 235 75-90-46-147-47-236-47z"/>
+    <path d="M1464 326c-20-109-110-120-205-131 102 49 145 85 190 154z"/>
+    <path d="M45 901c73-136 139-219 224-294l21 10C198 721 127 819 102 901z"/>
+    <path d="M279 623c-100-92-190-88-295-50 137 2 190 32 286 76z"/>
+    <path d="M273 626c-119-19-181 25-259 89 126-42 178-51 261-58z"/>
+    <path d="M280 619c-30-85-16-155 35-238-12 96-17 160-17 245z"/>
+    <path d="M281 632c80-86 156-91 266-80-117 30-187 64-250 101z"/>
+    <path d="M285 633c118 6 173 48 209 132-89-66-152-78-219-102z"/>
+  </g>
+  <g fill="#ffdfb1" opacity=".7">
+    <path d="M1157 803c31-12 60-12 87 1-31 2-57 2-87-1z"/>
+    <path d="M1118 838c18-9 36-9 54 0-17 4-36 4-54 0z"/>
+    <circle cx="108" cy="518" r="4"/><circle cx="750" cy="541" r="4"/><circle cx="836" cy="543" r="3"/>
+  </g>
+  <path d="M0 824c218-67 357-26 527 31s331 11 479-15 364 17 594 60H0z" fill="#eecda2" opacity=".35" filter="url(#paper)"/>
+</svg>

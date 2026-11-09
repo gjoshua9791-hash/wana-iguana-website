@@ -26,9 +26,9 @@ function App() {
       <main id="main">
         <section className="hero" aria-labelledby="hero-title">
           <div className="heroContent">
-            <p className="eyebrow">Fresh Mexican Food · Valencia, CA</p>
+            <p className="eyebrow">Beach mural spirit · Valencia, CA</p>
             <h1 id="hero-title">Come hungry.<br /><em>Leave happy.</em></h1>
-            <p className="heroText">Discover Wana Iguana’s tacos, burritos and local favorites. Browse the menu and call us with questions about ordering.</p>
+            <p className="heroText">Enjoy the colorful, laid-back feel of Wana Iguana while exploring tacos, burritos and local favorites. Browse the menu and call us with ordering questions.</p>
             <div className="heroButtons">
               <a href="#menu" className="primaryButton">Explore the menu ↗</a>
               <a href={restaurant.phoneHref} className="secondaryButton">Call the restaurant</a>
@@ -41,7 +41,7 @@ function App() {
           <div className="sectionIntro">
             <p className="eyebrow">Find your favorite</p>
             <h2 id="menu-title">Explore the menu</h2>
-            <p>Browse by category or search for a dish. Confirm current prices and availability with the restaurant.</p>
+            <p>Browse our chalkboard-inspired menu by category or search for a dish. Confirm current prices and availability with the restaurant.</p>
           </div>
           <div className="menuTools">
             <label htmlFor="menu-search">Search the menu</label>
