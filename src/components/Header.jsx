@@ -1,10 +1,16 @@
-export default function Header() {
+const links = [
+  ['home', 'Home'],
+  ['menu', 'Menu'],
+  ['assistant', 'Assistant'],
+  ['account', 'Account'],
+]
+
+export default function Header({ page }) {
   return <header className="siteHeader">
-    <a href="#main" className="logo" aria-label="Wana Iguana, back to top">Wana Iguana</a>
+    <a href="#/home" className="logo" aria-label="Wana Iguana, home page">Wana Iguana</a>
     <nav className="navLinks" aria-label="Main navigation">
-      <a href="#menu">Menu</a><a href="#specials">Specials</a>
-      <a href="#about">About</a><a href="#contact">Contact</a>
+      {links.map(([route, label]) => <a key={route} href={`#/${route}`}
+        aria-current={page === route ? 'page' : undefined}>{label}</a>)}
     </nav>
-    <a className="headerCall" href="tel:+16612979222">Call us ↗</a>
   </header>
 }

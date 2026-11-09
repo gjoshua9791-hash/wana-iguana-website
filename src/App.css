@@ -73,6 +73,7 @@ h1, h2, h3, h4, p { margin-top: 0; }
 .navLinks { display: flex; align-items: center; gap: clamp(10px, 2vw, 28px); }
 .navLinks a, .headerCall { font-weight: 800; text-decoration: none; }
 .navLinks a:hover, .footerLinks a:hover { color: var(--coral); }
+.navLinks a[aria-current='page'] { color: #92303c; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
 .headerCall {
   padding: 12px 20px;
   border-radius: 999px;
@@ -272,6 +273,7 @@ h1 em {
 .price { color: #ffe29a; font-weight: 900; white-space: nowrap; }
 .popularTag { padding: 4px 7px; border-radius: 99px; background: #a53249; color: white; font-size: .68rem; font-weight: 800; }
 .menuCategory :focus-visible { outline-color: #ffe29a; }
+.menuCategory:focus-visible { outline: 3px solid #ffe29a; outline-offset: 5px; }
 .emptyMessage { padding: 30px; border-radius: 13px; background: white; }
 
 .specialsSection {
@@ -329,6 +331,60 @@ h1 em {
 .siteFooter > a { align-self: center; }
 .siteFooter small { width: 100%; color: #cce4da; }
 
+/* The same header and footer frame four separate views. */
+main:focus { outline: none; }
+.heroContent h1 { font-size: clamp(2.8rem, 5.2vw, 5.8rem); }
+.homeOrders {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: clamp(30px, 6vw, 88px);
+  width: min(1160px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 95px 0;
+}
+.homeOrders h2 { margin-bottom: 16px; font-size: clamp(2.5rem, 5vw, 4.7rem); letter-spacing: -.055em; }
+.homeOrders > div > p:not(.eyebrow) { max-width: 440px; color: #405f5f; line-height: 1.7; }
+.orderEmptyCard {
+  padding: clamp(27px, 4vw, 45px);
+  border: 2px solid #b7ded6;
+  border-radius: 25px;
+  background: linear-gradient(150deg, #fffefd, #e9f7f0);
+  box-shadow: 0 12px 0 #d6eae2;
+}
+.orderEmptyIcon { display: inline-grid; width: 49px; height: 49px; place-items: center; border-radius: 50%; background: #d1f0e5; color: #086b70; font-size: 1.8rem; }
+.orderEmptyCard h3 { margin: 18px 0 10px; font-size: 1.5rem; }
+.orderEmptyCard p { color: #405f5f; line-height: 1.6; }
+.orderEmptyCard button { padding: 12px 16px; border: 0; border-radius: 99px; background: #dce6dc; color: #3e5552; font-weight: 800; cursor: not-allowed; }
+.orderEmptyCard a { display: inline-block; margin: 14px 0 0 16px; color: #085d62; font-weight: 900; text-underline-offset: 4px; }
+.pageBanner {
+  padding: 66px max(18px, calc((100% - 1160px) / 2));
+  background: radial-gradient(ellipse at 85% 0, rgba(255, 222, 157, .78), transparent 42%),
+    radial-gradient(ellipse at 10% 90%, rgba(93, 201, 190, .36), transparent 54%), #edf6e9;
+}
+.pageBanner h1, .placeholderPage h1, .accountPage h1 { margin-bottom: 13px; font-size: clamp(2.8rem, 5vw, 4.8rem); }
+.pageBanner > p:last-child { margin: 0; color: #405f5f; font-size: 1.08rem; }
+.menuPage .menuSection { padding-top: 72px; }
+.placeholderPage {
+  min-height: 64vh;
+  padding: 100px max(18px, calc((100% - 1160px) / 2)) 80px;
+  background: radial-gradient(ellipse at 80% 38%, rgba(113, 211, 199, .22), transparent 44%), var(--sand);
+}
+.placeholderPage > p:not(.eyebrow) { color: #405f5f; font-size: 1.1rem; }
+.assistantCanvas { min-height: 260px; margin-top: 34px; border: 2px dashed #a6d6cf; border-radius: 25px; background: rgba(255, 255, 255, .5); }
+.accountPage { width: min(1160px, calc(100% - 36px)); min-height: 65vh; margin: 0 auto; padding: 85px 0 110px; }
+.accountPage > .sectionIntro { max-width: 800px; }
+.accountGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.accountCard { padding: 28px; border: 2px solid #b7ded6; border-radius: 19px; background: linear-gradient(150deg, #fffefd, #e9f7f0); }
+.accountCard h2 { margin: 0 0 18px; color: #086b70; font-size: 1.3rem; }
+.accountCard p { margin-bottom: 9px; font-size: 1.12rem; font-weight: 800; }
+.accountCard small { color: #405f5f; line-height: 1.5; }
+.siteFooter { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, 1fr)); gap: 32px; }
+.siteFooter h2 { margin: 0 0 11px; color: #ffe1a0; font-size: 1.1rem; }
+.siteFooter .footerContact a { display: block; margin-bottom: 9px; color: white; font-weight: 800; line-height: 1.5; text-underline-offset: 4px; }
+.siteFooter .footerContact span { display: block; color: #cce4da; font-size: .9rem; line-height: 1.45; }
+.siteFooter small { grid-column: 1 / -1; }
+
 @media (max-width: 850px) {
   .siteHeader { flex-wrap: wrap; gap: 12px; }
   .navLinks { order: 3; width: 100%; justify-content: space-between; }
@@ -336,6 +392,8 @@ h1 em {
   .heroContent { width: min(calc(100% - 44px), 690px); margin: 32px auto 8px; }
   .heroPhoto { width: min(60%, 350px); height: 300px; margin: 22px auto 56px; }
   .menuRows { grid-template-columns: 1fr; }
+  .siteFooter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .footerBrand { grid-column: 1 / -1; }
 }
 @media (max-width: 520px) {
   html { scroll-padding-top: 150px; }
@@ -355,5 +413,13 @@ h1 em {
   .menuRowTop { flex-wrap: wrap; }
   .menuRowMeta { flex-wrap: wrap; }
   .contactGrid { grid-template-columns: 1fr; }
+  .homeOrders { grid-template-columns: 1fr; padding: 65px 0; }
+  .orderEmptyCard a { display: block; margin-left: 0; }
+  .pageBanner { padding-top: 54px; padding-bottom: 54px; }
+  .accountPage { width: calc(100% - 28px); padding: 60px 0 80px; }
+  .accountGrid { grid-template-columns: 1fr; }
+  .placeholderPage { padding-top: 70px; }
+  .siteFooter { grid-template-columns: 1fr; }
+  .footerBrand { grid-column: auto; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
