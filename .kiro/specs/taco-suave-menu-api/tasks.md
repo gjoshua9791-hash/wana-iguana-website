@@ -1,4 +1,4 @@
-# Tasks — Feature 1: Display Taco Suave from a Database-Backed API
+# Implementation Plan: Display Taco Suave from a Database-Backed API
 
 Implementation plan for `requirements.md` + `design.md` (same folder). Tasks are
 small and **dependency-ordered**: do them top to bottom. Each is sized for a student
@@ -20,6 +20,293 @@ Guardrails that apply to every task:
   (AC17).
 
 ---
+
+## Task Dependency Graph
+
+Derived directly from each task's existing **Depends on** field (no new dependencies
+introduced). `—` means no prerequisites.
+
+```mermaid
+graph TD
+  A1[A1]
+  A2[A2] --> A1
+  A3[A3] --> A2
+  B1[B1] --> A1
+  B2[B2] --> B1
+  B3[B3] --> B1
+  B3 --> B2
+  C1[C1] --> A3
+  C2[C2] --> B1
+  C2 --> B2
+  C2 --> C1
+  C3[C3] --> B3
+  C3 --> C2
+  D1[D1] --> A3
+  D1 --> C2
+  D2[D2] --> D1
+  D3[D3] --> D1
+  D3 --> D2
+  D4[D4] --> D3
+  E1[E1] --> D3
+  E2[E2] --> E1
+  E3[E3] --> E2
+  E4[E4] --> E3
+  F1[F1] --> D4
+  F1 --> E4
+  F1 --> C2
+  F2[F2] --> E4
+  F2 --> C3
+  F3[F3] --> C2
+  F3 --> D3
+  F3 --> E1
+```
+
+```json
+{
+  "tasks": [
+    {
+      "id": "A1",
+      "dependsOn": [],
+      "wave": 1
+    },
+    {
+      "id": "A2",
+      "dependsOn": [
+        "A1"
+      ],
+      "wave": 2
+    },
+    {
+      "id": "B1",
+      "dependsOn": [
+        "A1"
+      ],
+      "wave": 2
+    },
+    {
+      "id": "A3",
+      "dependsOn": [
+        "A2"
+      ],
+      "wave": 3
+    },
+    {
+      "id": "B2",
+      "dependsOn": [
+        "B1"
+      ],
+      "wave": 3
+    },
+    {
+      "id": "B3",
+      "dependsOn": [
+        "B1",
+        "B2"
+      ],
+      "wave": 4
+    },
+    {
+      "id": "C1",
+      "dependsOn": [
+        "A3"
+      ],
+      "wave": 4
+    },
+    {
+      "id": "C2",
+      "dependsOn": [
+        "B1",
+        "B2",
+        "C1"
+      ],
+      "wave": 5
+    },
+    {
+      "id": "C3",
+      "dependsOn": [
+        "B3",
+        "C2"
+      ],
+      "wave": 6
+    },
+    {
+      "id": "D1",
+      "dependsOn": [
+        "A3",
+        "C2"
+      ],
+      "wave": 6
+    },
+    {
+      "id": "D2",
+      "dependsOn": [
+        "D1"
+      ],
+      "wave": 7
+    },
+    {
+      "id": "D3",
+      "dependsOn": [
+        "D1",
+        "D2"
+      ],
+      "wave": 8
+    },
+    {
+      "id": "D4",
+      "dependsOn": [
+        "D3"
+      ],
+      "wave": 9
+    },
+    {
+      "id": "E1",
+      "dependsOn": [
+        "D3"
+      ],
+      "wave": 9
+    },
+    {
+      "id": "E2",
+      "dependsOn": [
+        "E1"
+      ],
+      "wave": 10
+    },
+    {
+      "id": "F3",
+      "dependsOn": [
+        "C2",
+        "D3",
+        "E1"
+      ],
+      "wave": 10
+    },
+    {
+      "id": "E3",
+      "dependsOn": [
+        "E2"
+      ],
+      "wave": 11
+    },
+    {
+      "id": "E4",
+      "dependsOn": [
+        "E3"
+      ],
+      "wave": 12
+    },
+    {
+      "id": "F1",
+      "dependsOn": [
+        "D4",
+        "E4",
+        "C2"
+      ],
+      "wave": 13
+    },
+    {
+      "id": "F2",
+      "dependsOn": [
+        "E4",
+        "C3"
+      ],
+      "wave": 13
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "tasks": [
+        "A1"
+      ]
+    },
+    {
+      "wave": 2,
+      "tasks": [
+        "A2",
+        "B1"
+      ]
+    },
+    {
+      "wave": 3,
+      "tasks": [
+        "A3",
+        "B2"
+      ]
+    },
+    {
+      "wave": 4,
+      "tasks": [
+        "B3",
+        "C1"
+      ]
+    },
+    {
+      "wave": 5,
+      "tasks": [
+        "C2"
+      ]
+    },
+    {
+      "wave": 6,
+      "tasks": [
+        "C3",
+        "D1"
+      ]
+    },
+    {
+      "wave": 7,
+      "tasks": [
+        "D2"
+      ]
+    },
+    {
+      "wave": 8,
+      "tasks": [
+        "D3"
+      ]
+    },
+    {
+      "wave": 9,
+      "tasks": [
+        "D4",
+        "E1"
+      ]
+    },
+    {
+      "wave": 10,
+      "tasks": [
+        "E2",
+        "F3"
+      ]
+    },
+    {
+      "wave": 11,
+      "tasks": [
+        "E3"
+      ]
+    },
+    {
+      "wave": 12,
+      "tasks": [
+        "E4"
+      ]
+    },
+    {
+      "wave": 13,
+      "tasks": [
+        "F1",
+        "F2"
+      ]
+    }
+  ]
+}
+```
+
+> Note: Task C2 also depends on the access-control SQL (`0003_access_policies.sql`),
+> which is authored within C2 itself rather than as a separate numbered task, so it is
+> not shown as a graph node.
 
 ## Phase A — Backend scaffold (preserve the frontend)
 
@@ -71,7 +358,7 @@ Add typed config loading that reads the database connection from server-side env
 
 ## Phase B — Database migrations & seed (version-controlled SQL)
 
-- [ ] **Task B1 — Migration: create the five catalog tables**
+- [x] **Task B1 — Migration: create the five catalog tables**
 Author the first migration that creates the schema exactly as in design §1.
 - **AC refs:** AC1, AC14
 - **Files:** `server/migrations/0001_create_catalog.sql` (tables `menu_item`,
@@ -83,7 +370,7 @@ Author the first migration that creates the schema exactly as in design §1.
   `price_cents`); `min_select`/`max_select` live on `variant_modifier_group`.
 - **Manual step?** No (applying it is Phase C).
 
-- [ ] **Task B2 — Migration: partial unique index for at-most-one active default**
+- [x] **Task B2 — Migration: partial unique index for at-most-one active default**
 Add the index enforcing *at most one* active default variant per item.
 - **AC refs:** AC4
 - **Files:** `server/migrations/0002_one_active_default.sql` (the
