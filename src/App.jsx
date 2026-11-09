@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import Header from './components/Header'
 import Footer from './components/Footer'
+import MenuItem from './components/MenuItem'
 import MenuSection from './components/MenuSection'
 import { categoryId } from './utils/categoryId'
 import { parseRoute } from './utils/routes'
 import { menu } from './data/menu'
+
+const specials = menu.find(section => section.category === 'Wana Specials')
 
 function HomePage() {
   return <>
@@ -13,11 +16,10 @@ function HomePage() {
       <div className="heroContent">
         <p className="eyebrow">Beach mural spirit · Valencia, CA</p>
         <h1 id="home-title">Wana Iguana<br /><em>Fresh Mexican Grill.</em></h1>
-        <p className="heroText">Enjoy the colorful, laid-back feel of Wana Iguana while exploring tacos, burritos and local favorites.</p>
-        <div className="heroButtons" aria-label="Explore the website">
-          <a href="#/menu" className="primaryButton">View the menu ↗</a>
-          <a href="#/assistant" className="secondaryButton">Assistant ↗</a>
-          <a href="#/account" className="secondaryButton">My account ↗</a>
+        <div className="heroAbout" aria-labelledby="about-title">
+          <p className="eyebrow">Get to know us</p>
+          <h2 id="about-title">Family-owned flavor in Valencia.</h2>
+          <p className="heroText">Wana Iguana serves fresh Mexican food including tacos, burritos and enchiladas. There’s something for the whole table.</p>
         </div>
       </div>
       <img className="heroPhoto" src="/images/taco-suave.jpeg" alt="Taco Suave from Wana Iguana" />
@@ -34,19 +36,17 @@ function HomePage() {
         <h3>No past orders yet</h3>
         <p>Once order history is available, you’ll be able to pick a previous order and order it again.</p>
         <button type="button" disabled title="Order history and online ordering are not available yet">Order again · Coming soon</button>
-        <a href="#/menu">Browse the menu ↗</a>
       </div>
     </section>
     <section className="specialsSection" aria-labelledby="specials-title">
       <p className="eyebrow">Something extra</p>
       <h2 id="specials-title">Wana Specials</h2>
-      <p>Explore the Wana Specials category. Call us to ask about today’s specials and availability.</p>
-      <a href="#/menu/wana-specials" className="textLink">See Wana Specials ↗</a>
-    </section>
-    <section className="infoSection" aria-labelledby="about-title">
-      <p className="eyebrow">Get to know us</p>
-      <h2 id="about-title">Family-owned flavor in Valencia.</h2>
-      <p>Wana Iguana serves fresh Mexican food including tacos, burritos and enchiladas. There’s something for the whole table.</p>
+      <p>These items are from the Wana Specials menu category. Call the restaurant about today’s specials, prices and availability.</p>
+      <div className="menuCategory homeSpecialsBoard">
+        <div className="menuRows">
+          {specials.items.map(item => <MenuItem key={item.name} item={item} />)}
+        </div>
+      </div>
     </section>
   </>
 }

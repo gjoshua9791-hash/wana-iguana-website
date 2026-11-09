@@ -17,7 +17,7 @@ Run the page-routing checks with `node --test src/utils/routes.test.js`.
 ## What works today
 
 - Four responsive views: Home, Menu, Assistant, and Account. Navigation uses hash URLs (`#/home`, `#/menu`, `#/assistant`, `#/account`) so direct links and browser Back work on static hosting without a new routing dependency.
-- Home has links to all views, a past-orders empty state, and an unavailable Order again control until order history exists. The Assistant view is reserved for a future implementation.
+- Home has the restaurant story below its name, the complete Wana Specials menu category, a past-orders empty state, and an unavailable Order again control until order history exists. The top navigation links to all views. The Assistant view is reserved for a future implementation.
 - Account displays empty states for name, payment methods, notifications, order history, and settings; there is no sign-in or payment data collection yet.
 - Menu search by item name, description or category.
 - Category links on the Menu view, including a direct link to Wana Specials from Home; drinks and beer display their prices.

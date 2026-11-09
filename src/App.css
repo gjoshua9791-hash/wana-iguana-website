@@ -334,6 +334,11 @@ h1 em {
 /* The same header and footer frame four separate views. */
 main:focus { outline: none; }
 .heroContent h1 { font-size: clamp(2.8rem, 5.2vw, 5.8rem); }
+.heroAbout { margin-top: 29px; padding-top: 22px; border-top: 2px dashed #c6d8cc; }
+.heroAbout .eyebrow { margin-bottom: 9px; }
+.heroAbout h2 { margin-bottom: 12px; font-size: clamp(1.4rem, 2.5vw, 2rem); letter-spacing: -.04em; line-height: 1.2; }
+.heroAbout .heroText { margin-bottom: 0; }
+.homeSpecialsBoard { position: relative; z-index: 1; margin-top: 27px; }
 .homeOrders {
   display: grid;
   grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
@@ -403,6 +408,7 @@ main:focus { outline: none; }
   .navLinks { gap: 6px; font-size: .86rem; }
   .introStrip { gap: 9px; font-size: .86rem; }
   .heroContent { padding: 29px 24px; border-radius: 25px; }
+  .heroAbout { margin-top: 21px; padding-top: 18px; }
   h1 { font-size: clamp(2.7rem, 13vw, 4.4rem); }
   .heroPhoto { width: min(73%, 320px); height: 250px; }
   .menuSection, .infoSection, .contactSection { width: calc(100% - 28px); }
