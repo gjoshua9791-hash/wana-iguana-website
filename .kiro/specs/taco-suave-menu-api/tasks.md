@@ -380,7 +380,7 @@ Add the index enforcing *at most one* active default variant per item.
   (zero is allowed; the API returns 404 for no-active-default).
 - **Manual step?** No.
 
-- [ ] **Task B3 — Migration: seed Taco Suave (verified data)**
+- [x] **Task B3 — Migration: seed Taco Suave (verified data)**
 Insert the verified Taco Suave rows from design §2 example rows.
 - **AC refs:** AC1, AC3, AC5, AC14
 - **Files:** `server/migrations/0004_seed_taco_suave.sql` (inserts `taco-suave`,
