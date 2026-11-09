@@ -1,30 +1,32 @@
 import express, { type Express, type Request, type Response } from 'express'
+import { loadServerConfig } from './config.js'
 
 /**
- * Wana Iguana backend — minimal health server (Tasks A1 + A2).
+ * Wana Iguana backend — health server with environment configuration.
  *
- * This first milestone deliberately has NO database wiring: the `/health`
- * endpoint responds purely from the web server, so a teammate can start it and
- * verify it with an empty (or missing) `.env`. No Supabase credentials are read
- * or required here. Database access is introduced in later tasks.
+ * Server configuration (the listening PORT) is resolved via `loadServerConfig`
+ * from ./config. Database configuration is intentionally NOT loaded here: the
+ * `/health` endpoint is database-independent and must start and respond with an
+ * empty or missing `.env` (no DATABASE_URL required). Database config is read
+ * lazily by `getDatabaseConfig` only from code paths that need the database
+ * (added in later tasks).
  */
-
-/** Default port when `PORT` is not set in the environment. */
-const DEFAULT_PORT = 3001
 
 /**
- * Resolve the listening port from `process.env.PORT`, falling back to
- * {@link DEFAULT_PORT}. A missing or non-numeric value yields the default.
+ * Optionally load a server-side `.env` into process.env, if present.
+ *
+ * Uses Node's built-in `process.loadEnvFile()` (no third-party dependency).
+ * A missing `.env` is non-fatal — the server (and `/health`) must still run,
+ * which keeps the health endpoint usable with no environment file at all.
  */
-function resolvePort(rawPort: string | undefined): number {
-  if (rawPort === undefined || rawPort.trim() === '') {
-    return DEFAULT_PORT
+function loadDotEnvIfPresent(): void {
+  try {
+    // Available on the project's supported Node versions; reads ./.env relative
+    // to the process CWD (the server/ folder when run via its npm scripts).
+    process.loadEnvFile()
+  } catch {
+    // No .env file (or unreadable) — fine for this milestone; defaults apply.
   }
-  const parsed = Number(rawPort)
-  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
-    return DEFAULT_PORT
-  }
-  return parsed
 }
 
 /** Build the Express application with its routes registered. */
@@ -39,8 +41,10 @@ export function createApp(): Express {
   return app
 }
 
+loadDotEnvIfPresent()
+
 const app = createApp()
-const port = resolvePort(process.env.PORT)
+const { port } = loadServerConfig()
 
 app.listen(port, () => {
   console.log(`Wana Iguana backend listening on http://localhost:${port}`)

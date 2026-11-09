@@ -34,6 +34,24 @@ cp .env.example .env   # optional for this milestone — /health needs no secret
 | `npm start`     | Runs the compiled server (`node dist/index.js`). Build first.       |
 | `npm run lint`  | Lints the TypeScript sources with ESLint.                           |
 
+## Configuration
+
+Configuration is read from the environment (a server-side `.env`, loaded via
+Node's built-in `process.loadEnvFile()` — no extra dependency). See
+[`.env.example`](./.env.example) for placeholders. It splits into two groups:
+
+- **Server config (always available, no database needed).** `PORT` — optional,
+  defaults to **3001**. A valid integer 1-65535 overrides it; an invalid value
+  is **rejected at startup** with a clear error (no silent fallback).
+- **Database config (used only by database features, added later).** `DATABASE_URL`
+  — a PostgreSQL connection URL (`postgres://` or `postgresql://`). It is read
+  **lazily**, only when database functionality needs it, so `/health` runs with
+  `DATABASE_URL` unset. A missing or malformed value produces a clear error that
+  **never prints the credential**. It is **server-side only**: never prefix it
+  with `VITE_` and never place it in a frontend env file; the frontend never
+  receives it. Real `.env` files are git-ignored; only `.env.example`
+  (placeholders only) is tracked.
+
 ## Verifying the health check
 
 With the server running (`npm run dev`, or `npm run build && npm start`):

@@ -342,7 +342,7 @@ Set up the backend package, TypeScript config, scripts, and a minimal health ser
   returns 200 with `{"ok":true}` **without** any database credentials present.
 - **Manual step?** No.
 
-- [ ] **Task A3 — Config & environment loading (no secrets in Git)**
+- [x] **Task A3 — Config & environment loading (no secrets in Git)**
 Add typed config loading that reads the database connection from server-side env vars.
 - **AC refs:** AC15
 - **Files:** `server/src/config.ts` (reads `DATABASE_URL` etc. from `process.env`,
@@ -353,6 +353,14 @@ Add typed config loading that reads the database connection from server-side env
   values; real `.env` is git-ignored; config throws a readable error when a variable
   is absent. No `VITE_`-prefixed names are used for DB secrets.
 - **Manual step?** No (real `.env` is created in Phase C).
+- **Refinement (applied):** to preserve the already-approved database-independent
+  `/health` (A2), configuration is split into **server config** (always available —
+  `PORT`, loaded at startup) and **database config** (`DATABASE_URL`, resolved
+  **lazily** only when a DB feature needs it). The "throws a clear error if missing"
+  rule applies to the *database* config at the point of use, **not** to every server
+  startup — so the server and `/health` still start with `DATABASE_URL` unset.
+  `PORT` is validated at startup: a valid integer overrides 3001, an invalid value is
+  rejected. Database-config errors never print the connection string/credential.
 
 ---
 
