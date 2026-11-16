@@ -4,7 +4,6 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import MenuItem from './components/MenuItem'
 import MenuSection from './components/MenuSection'
-import { categoryId } from './utils/categoryId'
 import { filterMenuItems } from './utils/menuExplorer'
 import { parseRoute } from './utils/routes'
 import { menu } from './data/menu'
@@ -109,10 +108,6 @@ function MenuPage() {
         </label>
         <button className="clearFilters" type="button" onClick={clearFilters} disabled={!filtersActive}>Clear filters</button>
       </div>
-      <nav className="categoryNav" aria-label="Menu categories">
-        {(filtersActive ? filteredMenu : menu).map(section => <a key={section.category}
-          href={'#/menu/' + categoryId(section.category)}>{section.category}</a>)}
-      </nav>
       <p className="resultsCount" role="status" aria-live="polite">
         {filtersActive ? resultCount + ' matching items' : 'All menu categories'}
       </p>

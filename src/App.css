@@ -222,18 +222,6 @@ h1 em {
 .clearFilters { min-height: 50px; padding: 10px 15px; border: 2px solid var(--ocean); border-radius: 13px; background: white; color: var(--ocean); font-weight: 900; cursor: pointer; }
 .clearFilters:not(:disabled):hover { background: #e6f6ee; }
 .clearFilters:disabled { opacity: .6; cursor: default; }
-.categoryNav { display: flex; gap: 9px; overflow-x: auto; padding: 10px 0 18px; scrollbar-width: thin; }
-.categoryNav a {
-  flex: none;
-  padding: 10px 15px;
-  border: 1px solid #63aca8;
-  border-radius: 30px;
-  background: #e6f6ee;
-  color: #12505a;
-  font-weight: 800;
-  text-decoration: none;
-}
-.categoryNav a:hover { background: var(--ocean); color: white; }
 .resultsCount { margin: 3px 0 20px; color: #446669; font-size: .9rem; }
 .menuList { display: grid; gap: 32px; }
 

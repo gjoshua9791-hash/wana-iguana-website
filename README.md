@@ -21,7 +21,7 @@ Run the menu filter checks with `node --test src/utils/menuExplorer.test.js`.
 - Home has the restaurant story below its name, the complete Wana Specials menu category, a past-orders empty state, and an unavailable Order again control until order history exists. The top navigation links to all views. The Assistant view is reserved for a future implementation.
 - Account displays empty states for name, payment methods, notifications, order history, and settings; there is no sign-in or payment data collection yet.
 - Menu search by item name, description or category, combined with a category selector, maximum price, and popular-only filter. Clear filters restores the original menu, and the existing empty state explains when nothing matches.
-- Category links on the Menu view, including a direct link to Wana Specials from Home; drinks and beer display their prices.
+- The Menu view shows the original items and prices, including drinks and beer. Home also shows the existing Wana Specials menu category.
 - Keyboard skip link, visible focus, image descriptions and reduced-motion support.
 - The shared footer on every view includes the restaurant phone number and a directions link.
 
