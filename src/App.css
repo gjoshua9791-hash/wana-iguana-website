@@ -19,7 +19,7 @@ body {
   background: var(--sand);
   font-family: 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
 }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 a { color: inherit; }
 :focus-visible { outline: 3px solid #d14e40; outline-offset: 4px; }
 h1, h2, h3, h4, p { margin-top: 0; }
@@ -205,6 +205,23 @@ h1 em {
   box-shadow: 0 4px 0 rgba(7, 107, 112, .08);
 }
 .menuTools input:focus { border-color: var(--coral); }
+.menuFilters { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 0 0 20px; }
+.filterField { display: grid; flex: 1 1 190px; gap: 9px; }
+.filterField label { font-weight: 900; }
+.filterField select {
+  width: 100%;
+  min-height: 50px;
+  padding: 10px 35px 10px 13px;
+  border: 2px solid #65aaa7;
+  border-radius: 13px;
+  background: white;
+  color: var(--ink);
+}
+.filterCheckbox { display: inline-flex; align-items: center; gap: 9px; min-height: 50px; font-weight: 800; cursor: pointer; }
+.filterCheckbox input { width: 19px; height: 19px; accent-color: var(--ocean); }
+.clearFilters { min-height: 50px; padding: 10px 15px; border: 2px solid var(--ocean); border-radius: 13px; background: white; color: var(--ocean); font-weight: 900; cursor: pointer; }
+.clearFilters:not(:disabled):hover { background: #e6f6ee; }
+.clearFilters:disabled { opacity: .6; cursor: default; }
 .categoryNav { display: flex; gap: 9px; overflow-x: auto; padding: 10px 0 18px; scrollbar-width: thin; }
 .categoryNav a {
   flex: none;
@@ -419,6 +436,8 @@ main:focus { outline: none; }
   .menuRowTop { flex-wrap: wrap; }
   .menuRowMeta { flex-wrap: wrap; }
   .contactGrid { grid-template-columns: 1fr; }
+  .filterField { flex-basis: 100%; }
+  .menuFilters { align-items: center; }
   .homeOrders { grid-template-columns: 1fr; padding: 65px 0; }
   .orderEmptyCard a { display: block; margin-left: 0; }
   .pageBanner { padding-top: 54px; padding-bottom: 54px; }

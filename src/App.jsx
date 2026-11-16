@@ -5,6 +5,7 @@ import Footer from './components/Footer'
 import MenuItem from './components/MenuItem'
 import MenuSection from './components/MenuSection'
 import { categoryId } from './utils/categoryId'
+import { filterMenuItems } from './utils/menuExplorer'
 import { parseRoute } from './utils/routes'
 import { menu } from './data/menu'
 
@@ -53,15 +54,19 @@ function HomePage() {
 
 function MenuPage() {
   const [search, setSearch] = useState('')
-  const query = search.trim().toLowerCase()
-  const filteredMenu = menu.map(section => ({
-    ...section,
-    items: section.items.filter(item =>
-      [section.category, item.name, item.description].filter(Boolean)
-        .some(value => value.toLowerCase().includes(query))
-    ),
-  })).filter(section => section.items.length > 0)
+  const [category, setCategory] = useState('all')
+  const [maxPrice, setMaxPrice] = useState('any')
+  const [popularOnly, setPopularOnly] = useState(false)
+  const filtersActive = Boolean(search.trim()) || category !== 'all' || maxPrice !== 'any' || popularOnly
+  const filteredMenu = filterMenuItems(menu, { search, category, maxPrice, popularOnly })
   const resultCount = filteredMenu.reduce((total, section) => total + section.items.length, 0)
+
+  function clearFilters() {
+    setSearch('')
+    setCategory('all')
+    setMaxPrice('any')
+    setPopularOnly(false)
+  }
 
   return <div className="menuPage">
     <div className="pageBanner menuBanner">
@@ -81,16 +86,39 @@ function MenuPage() {
           onChange={event => setSearch(event.target.value)}
           placeholder="Try tacos, shrimp, or burrito" />
       </div>
+      <div className="menuFilters" role="group" aria-label="Filter menu items">
+        <div className="filterField">
+          <label htmlFor="menu-category">Category</label>
+          <select id="menu-category" value={category} onChange={event => setCategory(event.target.value)}>
+            <option value="all">All categories</option>
+            {menu.map(section => <option key={section.category} value={section.category}>{section.category}</option>)}
+          </select>
+        </div>
+        <div className="filterField">
+          <label htmlFor="menu-price">Maximum price</label>
+          <select id="menu-price" value={maxPrice} onChange={event => setMaxPrice(event.target.value)}>
+            <option value="any">Any price</option>
+            <option value="10">$10 or less</option>
+            <option value="15">$15 or less</option>
+            <option value="20">$20 or less</option>
+          </select>
+        </div>
+        <label className="filterCheckbox" htmlFor="menu-popular">
+          <input id="menu-popular" type="checkbox" checked={popularOnly}
+            onChange={event => setPopularOnly(event.target.checked)} /> Popular items only
+        </label>
+        <button className="clearFilters" type="button" onClick={clearFilters} disabled={!filtersActive}>Clear filters</button>
+      </div>
       <nav className="categoryNav" aria-label="Menu categories">
-        {(query ? filteredMenu : menu).map(section => <a key={section.category}
+        {(filtersActive ? filteredMenu : menu).map(section => <a key={section.category}
           href={'#/menu/' + categoryId(section.category)}>{section.category}</a>)}
       </nav>
       <p className="resultsCount" role="status" aria-live="polite">
-        {query ? resultCount + ' matching items' : 'All menu categories'}
+        {filtersActive ? resultCount + ' matching items' : 'All menu categories'}
       </p>
       {filteredMenu.length ? <div className="menuList">
         {filteredMenu.map(section => <MenuSection key={section.category} section={section} />)}
-      </div> : <p className="emptyMessage">No dishes match your search. Try another name or category.</p>}
+      </div> : <p className="emptyMessage">No dishes match these filters. Try changing your search, price, or category, or clear the filters.</p>}
     </section>
   </div>
 }
