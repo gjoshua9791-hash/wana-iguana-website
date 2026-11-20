@@ -1,5 +1,6 @@
 import express, { type Express, type Request, type Response } from 'express'
 import { loadServerConfig } from './config.js'
+import { createMenuRouter } from './menu/router.js'
 
 /**
  * Wana Iguana backend — health server with environment configuration.
@@ -8,8 +9,9 @@ import { loadServerConfig } from './config.js'
  * from ./config. Database configuration is intentionally NOT loaded here: the
  * `/health` endpoint is database-independent and must start and respond with an
  * empty or missing `.env` (no DATABASE_URL required). Database config is read
- * lazily by `getDatabaseConfig` only from code paths that need the database
- * (added in later tasks).
+ * lazily by `getDatabaseConfig` only from code paths that need the database.
+ * The menu route (`/api/menu/items/:itemId`) uses that lazy pool, so mounting it
+ * does NOT connect at startup and `/health` stays database-independent.
  */
 
 /**
@@ -37,6 +39,10 @@ export function createApp(): Express {
   app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ ok: true })
   })
+
+  // Database-backed menu route. Uses the lazy pool, so mounting it here does not
+  // open a connection; /health above remains usable without a configured DB.
+  app.use(createMenuRouter())
 
   return app
 }

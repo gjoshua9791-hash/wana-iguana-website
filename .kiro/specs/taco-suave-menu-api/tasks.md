@@ -404,7 +404,7 @@ Insert the verified Taco Suave rows from design §2 example rows.
 
 ## Phase C — Supabase dev setup, access control & seeding (manual-heavy)
 
-- [ ] **Task C1 — 🔧 Create/confirm the shared Supabase dev project & get the connection string**
+- [x] **Task C1 — 🔧 Create/confirm the shared Supabase dev project & get the connection string**
 One teammate sets up the single shared dev project and shares connection details
 securely (not in Git, not in chat logs).
 - **AC refs:** AC15
@@ -421,7 +421,7 @@ securely (not in Git, not in chat logs).
 > application is **documented and tracked** (C2) so teammates never blindly reapply
 > migrations against the shared database.
 
-- [ ] **Task C2 — 🔧 Apply schema + access-control migrations, with tracking (before seeding)**
+- [x] **Task C2 — 🔧 Apply schema + access-control migrations, with tracking (before seeding)**
 Apply the structural and access-control migrations to the shared project, and set up
 tracking so each migration is applied exactly once.
 - **AC refs:** AC1, AC15
@@ -441,7 +441,7 @@ tracking so each migration is applied exactly once.
 - **Manual step?** 🔧 Yes — running migrations against the hosted DB + dashboard
   settings for access control.
 
-- [ ] **Task C3 — 🔧 Seed the shared catalog (after access controls)**
+- [x] **Task C3 — 🔧 Seed the shared catalog (after access controls)**
 Apply the Taco Suave seed migration to the now-locked-down shared database.
 - **AC refs:** AC1, AC3, AC5, AC14
 - **Files:** apply `server/migrations/0004_seed_taco_suave.sql` (from B3); record it in
@@ -456,7 +456,7 @@ Apply the Taco Suave seed migration to the now-locked-down shared database.
 
 ## Phase D — Database-backed GET endpoint
 
-- [ ] **Task D1 — Database client & query module**
+- [x] **Task D1 — Database client & query module**
 Add a small Postgres access layer the route will use.
 - **AC refs:** AC1
 - **Files:** `server/src/db.ts` (creates the pool/client from `config.ts`),
@@ -466,7 +466,7 @@ Add a small Postgres access layer the route will use.
   variant first, and joins only that variant's groups/options (no variant merging).
 - **Manual step?** No.
 
-- [ ] **Task D2 — Response mapping (rows → nested JSON)**
+- [x] **Task D2 — Response mapping (rows → nested JSON)**
 Transform flat SQL rows into the API JSON shape from design §3.
 - **AC refs:** AC2, AC3, AC14
 - **Files:** `server/src/menu/mapRows.ts` (collapses rows into
@@ -477,7 +477,7 @@ Transform flat SQL rows into the API JSON shape from design §3.
   `priceDeltaCents` per option, stable IDs, and integer cents; no hard-coded item data.
 - **Manual step?** No.
 
-- [ ] **Task D3 — Route handler with status codes**
+- [x] **Task D3 — Route handler with status codes**
 Wire `GET /api/menu/items/:itemId` to the query + mapper with correct statuses.
 - **AC refs:** AC2, AC7, AC8
 - **Files:** `server/src/menu/router.ts`, mount it in `server/src/index.ts`.
@@ -487,7 +487,7 @@ Wire `GET /api/menu/items/:itemId` to the query + mapper with correct statuses.
   thrown DB error.
 - **Manual step?** No.
 
-- [ ] **Task D4 — Backend tests (default-variant & not-found rules)**
+- [x] **Task D4 — Backend tests (default-variant & not-found rules)**
 Automated tests proving the key invariants.
 - **Database integration tests require an isolated test environment.** These tests
   insert and delete rows (e.g. attempting a second active default), so they must run

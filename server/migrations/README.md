@@ -27,13 +27,61 @@ Apply strictly in ascending numeric order.
 |-------|-------------------------------|----------------------------------------------------|-------------------|
 | 1     | `0001_create_catalog.sql`     | Create the five catalog tables; enable RLS.        | authored (B1)     |
 | 2     | `0002_one_active_default.sql` | Partial unique index: ≤1 active default per item.  | authored (B2)     |
-| 3     | `0003_access_policies.sql`    | Access control: grants/revokes + RLS policies.     | **not yet** (C2)  |
-| 4     | `0004_seed_taco_suave.sql`    | Seed the verified Taco Suave rows.                 | **not yet** (B3)  |
+| 3     | `0003_access_policies.sql`    | Access control: least-priv read role + RLS policies.| authored (C2 local)|
+| 4     | `0004_seed_taco_suave.sql`    | Seed the verified Taco Suave rows.                 | authored (B3)     |
 
 > Numbering note: the seed is deliberately numbered `0004`, after the access
 > control migration `0003`, so that **access controls are applied before any seed
-> data exists** (see the ordering rule below). `0003` and `0004` are authored in
-> later tasks; only `0001` and `0002` exist today.
+> data exists** (see the ordering rule below).
+
+## The runner, and operator vs runtime credentials
+
+Use the documented runner [`run_migrations.sh`](./run_migrations.sh) to apply the
+fixed order **0001 → 0002 → 0003 → 0004**. It:
+
+- records each migration atomically with its body (`psql -X --single-transaction
+  -v ON_ERROR_STOP=1`, body + ledger INSERT in one transaction);
+- **skips** migrations already present in `public.schema_migrations`;
+- **stops on the first error** (and that migration's transaction rolls back).
+
+```bash
+# Check what is already applied / preview the plan without applying:
+DB_URL="postgresql://OPERATOR@HOST:5432/postgres" server/migrations/run_migrations.sh --dry-run
+# Apply the missing migrations in order:
+DB_URL="postgresql://OPERATOR@HOST:5432/postgres" server/migrations/run_migrations.sh
+```
+
+The runner never reads, requests, or prints a password; it hands `DB_URL` to psql,
+which handles authentication (e.g. `~/.pgpass`, `PGPASSWORD`, or the URL you pass).
+
+Runner behavior worth noting:
+- `--dry-run` is strictly **read-only**: it validates arguments and the presence
+  of all four migration files, checks the ledger with a read-only query, and
+  prints the plan. It creates no ledger, applies nothing, and alters no
+  permissions/RLS (verified on both a fresh and an already-migrated database).
+- Unknown arguments and a missing `DB_URL` are rejected (exit 2) before any DB
+  work. A missing migration file is detected before applying anything.
+- The recorded ledger must be a **valid prefix** of `0001→0002→0003→0004`
+  (literal filename matching). An out-of-order or unknown record stops the run
+  with an explanation. Ledger init and ledger reads are status-checked; a failed
+  query is never treated as an empty ledger.
+- Ledger init (one transaction) revokes all ledger privileges from `PUBLIC` and,
+  when present, `anon`/`authenticated`; `0003` additionally revokes the runtime
+  role from the ledger (so even TRUNCATE, which RLS does not cover, is denied).
+
+**Two separate credentials — do not mix them:**
+
+| Role | Who | What it may do |
+|------|-----|----------------|
+| **Migration operator** | owner/superuser that runs the runner (on Supabase: `postgres`) | owns tables + ledger; applies migrations; writes the ledger |
+| **Express runtime** | the `menu_backend` role (NOLOGIN) granted to a dedicated LOGIN user | **SELECT only** on the five catalog tables via RLS read policies; **no** writes; **no** ledger access |
+
+`0003_access_policies.sql` creates `menu_backend` (NOLOGIN, privilege-bearing),
+grants it catalog `SELECT` + adds per-table `FOR SELECT` RLS policies, revokes
+catalog access from `PUBLIC`/`anon`/`authenticated`, and re-revokes the ledger
+from `menu_backend`. A human creates a LOGIN user out of band and runs
+`GRANT menu_backend TO <login_user>` so no password ever lands in SQL or Git.
+The Express server connects as that login user — never as the operator.
 
 ## RLS is enabled, but access control is NOT finished here
 
@@ -64,12 +112,11 @@ publicly writable. Do not seed a shared database until access controls from
 
 ## Atomic tracking (schema change + ledger entry in ONE transaction)
 
-> **⚠️ INCOMPLETE — deferred to Task C2. Do NOT apply to any shared database
-> yet.** The concrete apply tool/runner, the exact `0003` policies, and who holds
-> the migration-operator role are finalized in C2. The workflow below is the
-> *contract* C2 must implement; until C2 provides a tested runner, treat this as
-> unsuitable for shared-database application. (Applying `0001`/`0002` to a
-> disposable **isolated** test DB for review is fine — see the next section.)
+> **Status:** implemented. The runner `run_migrations.sh` applies this contract
+> (atomic body + ledger INSERT, skip-already-applied, stop-on-error). The full
+> `0001`–`0004` sequence has been applied to the shared Supabase database and
+> verified (see `VERIFY_C2_SUPABASE_RESULTS.md`). The explanation below documents
+> why the files carry no `BEGIN`/`COMMIT` and how the operator owns the transaction.
 
 **Goal:** a migration's schema changes and its ledger record must commit together
 or not at all. Never "COMMIT the schema, then separately INSERT the ledger row" —
@@ -152,6 +199,9 @@ psql "$ISOLATED_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 --single-transaction \
   -c "INSERT INTO public.schema_migrations (filename) VALUES ('0002_one_active_default.sql');"
 ```
 
-Runtime behavior of these migrations against Postgres (successful creation, RLS
-enablement, and the partial-unique-index rejection of a second active default)
-remains **unverified** until run against such a database (exercised in Task D4).
+Runtime behavior has been verified locally against PostgreSQL 18 (see
+`VERIFY_B1_B2_RESULTS.md`, `VERIFY_B3_SEED_RESULTS.md`, `VERIFY_C2_LOCAL_RESULTS.md`)
+and the full `0001`–`0004` sequence has been applied and verified on the shared
+Supabase database (PostgreSQL 17.11) — recorded in `VERIFY_C2_SUPABASE_RESULTS.md`.
+For routine application, prefer the runner `run_migrations.sh` over the manual
+per-file commands above; the runner tracks the ledger and skips applied migrations.
