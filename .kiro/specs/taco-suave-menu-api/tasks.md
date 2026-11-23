@@ -516,8 +516,12 @@ Automated tests proving the key invariants.
 
 ## Phase E — In-place React display
 
-- [ ] **Task E1 — Dev proxy so the frontend can call the API by relative URL**
+- [x] **Task E1 — Dev proxy so the frontend can call the API by relative URL**
 Add a Vite dev proxy mapping `/api` → the Express server.
+  - **Verified (integration worktree):** `vite.config.js` adds `server.proxy['/api']`
+    → `http://localhost:3001`, `changeOrigin`, no rewrite (path preserved).
+    `GET http://localhost:5173/api/menu/items/taco-suave` returns the live DB JSON
+    (200); unknown id returns 404. Frontend build/lint and existing tests still pass.
 - **AC refs:** AC2, AC17
 - **Files:** `vite.config.js` (add `server.proxy` for `/api`).
 - **Depends on:** D3
@@ -526,7 +530,23 @@ Add a Vite dev proxy mapping `/api` → the Express server.
 - **Manual step?** No.
 
 - [ ] **Task E2 — `TacoSuaveCard` component: fetch + loading/error/not-found states**
-Build the component with its four states (no selection UI yet).
+Build the component with its four states (no selection UI yet). **Incomplete:**
+loading-state and 404/not-found rendered states are not yet verified in a browser.
+  - **Implemented:** `src/components/TacoSuaveCard.jsx` + `useTacoSuave.js` hook +
+    `TacoSuaveCard.css`. Fetches on mount via relative `/api` URL; loading spinner;
+    error + Retry (re-fetch); not-found "currently unavailable"; success shows name +
+    price formatted from `basePriceCents`.
+  - **Automated (backend/proxy/pure-logic only — NOT the React UI):** the HTTP→state
+    mapping (200→success, 404→notFound, 500→error, refused→error) is confirmed by
+    `server/verify_e_states.mjs`, which exercises a **mirror** of the hook's branching
+    against a stub server — it does not render the component. Live 200/404 against the
+    real DB and the backend-down→up proxy transition confirm the *network* behavior
+    only, not the rendered states or the Retry button.
+  - **User browser checks (success + error path):** success shows the item once at
+    $5.25; stopping the backend + refreshing shows the error message and Retry button;
+    restarting + clicking Retry restores the item.
+  - **Pending browser verification:** the **loading** state and the **404/not-found**
+    rendered state. See `server/VERIFICATION.md`.
 - **AC refs:** AC5, AC6, AC7, AC8
 - **Files:** `src/components/TacoSuaveCard.jsx`, styles as needed in `src/App.css`.
 - **Depends on:** E1
@@ -537,7 +557,17 @@ Build the component with its four states (no selection UI yet).
 - **Manual step?** No.
 
 - [ ] **Task E3 — `TacoSuaveCard`: protein selection UI (exactly-one semantics, starts empty)**
-Add the "Choose one" radio group.
+Add the "Choose one" radio group. **Incomplete:** keyboard-only operation and mobile
+layout are not yet verified.
+  - **Implemented:** group rendered from the API as native `<input type="radio">`
+    sharing one `name` (browser-enforced at-most-one + replace-on-change); label
+    "Choose one" from the API; `selectedOptionId` starts `null` (nothing
+    pre-selected); selected state is both React-controlled and visibly indicated;
+    keyboard focus ring; no blocking validation (display-only).
+  - **User browser checks:** neither protein starts selected; selecting one replaces
+    the other (via pointer).
+  - **Pending browser verification:** keyboard-only selection (Tab/arrow/space with
+    visible focus) and mobile layout. See `server/VERIFICATION.md`.
 - **AC refs:** AC3, AC9, AC10, AC11, AC12, AC13
 - **Files:** `src/components/TacoSuaveCard.jsx` (extend E2).
 - **Depends on:** E2
@@ -548,8 +578,23 @@ Add the "Choose one" radio group.
   API, not enforced by a submit here.
 - **Manual step?** No.
 
-- [ ] **Task E4 — Swap Taco Suave in place in the menu (no double display)**
+- [x] **Task E4 — Swap Taco Suave in place in the menu (no double display)**
 Replace the static Taco Suave row with `TacoSuaveCard` in its existing position.
+  - **Verified (integration worktree):** `menu.js` gains `id: "taco-suave"` on that
+    entry only. `MenuSection.jsx` renders `<TacoSuaveCard/>` in place of the static
+    row for that id (exactly once, original Original Tacos slot); all other items
+    render unchanged.
+  - **Integration-specific:** because this frontend filters/counts through
+    `filterMenuItems`, the API values are reconciled into the menu **before**
+    filtering (`menuWithTacoSuave`): on success the displayed name/price and the
+    search/price-filter matches + result count agree; while not loaded, Taco Suave is
+    excluded from filtering so stale static data never matches. A pending Taco Suave
+    card is a NOTICE, not a counted item, so the section header count and the
+    top-level "N matching items" both tally only loaded items and never disagree
+    (verified for category-only, popular-only, combined, and unfiltered across all
+    statuses in `src/utils/tacoSuaveMenu.test.js`).
+  - **User browser checks:** Taco Suave displays exactly once at $5.25; searching
+    "taco suave" shows one matching item.
 - **AC refs:** AC16, AC17
 - **Files:** `src/data/menu.js` (add stable `id: "taco-suave"` to that entry only),
   `src/App.jsx` (in the Original Tacos mapping, render `<TacoSuaveCard />` when

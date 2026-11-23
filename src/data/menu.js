@@ -4,6 +4,12 @@ export const menu = [
     note: "Served with chips",
     items: [
       {
+        // Stable marker matching the catalog ID. The render loop swaps this one
+        // row for the API-backed TacoSuaveCard; name/description/price here are
+        // only a fallback for pre-API filtering shape and are overlaid by the
+        // live API values before filtering (see MenuPage). Image, category, and
+        // popularity remain local presentation metadata.
+        id: "taco-suave",
         name: "Taco Suave",
         description: "Soft corn tortilla with choice of steak or chicken with lettuce, cheese, and pico de gallo.",
         popular: true,

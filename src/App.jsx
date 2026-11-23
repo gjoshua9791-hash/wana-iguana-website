@@ -4,9 +4,10 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import MenuItem from './components/MenuItem'
 import MenuSection from './components/MenuSection'
-import { filterMenuItems } from './utils/menuExplorer'
+import { filterMenuItems, menuWithTacoSuave } from './utils/menuExplorer'
 import { parseRoute } from './utils/routes'
 import { menu } from './data/menu'
+import { useTacoSuave } from './utils/useTacoSuave'
 
 const specials = menu.find(section => section.category === 'Wana Specials')
 
@@ -56,9 +57,31 @@ function MenuPage() {
   const [category, setCategory] = useState('all')
   const [maxPrice, setMaxPrice] = useState('any')
   const [popularOnly, setPopularOnly] = useState(false)
+  // Live, database-backed Taco Suave. Owned here so the SAME fetched data feeds
+  // both filtering/counting and the in-place TacoSuaveCard (no divergence).
+  const taco = useTacoSuave()
+
   const filtersActive = Boolean(search.trim()) || category !== 'all' || maxPrice !== 'any' || popularOnly
-  const filteredMenu = filterMenuItems(menu, { search, category, maxPrice, popularOnly })
+  // Reconcile the API values into the static menu before filtering so displayed
+  // name/price and filter matches/counts agree (on success); on any other status
+  // the Taco Suave entry is excluded from filtering so stale static data never
+  // matches or inflates the count.
+  const reconciledMenu = menuWithTacoSuave(menu, taco)
+  const filteredMenu = filterMenuItems(reconciledMenu, { search, category, maxPrice, popularOnly })
   const resultCount = filteredMenu.reduce((total, section) => total + section.items.length, 0)
+
+  // When Taco Suave hasn't successfully loaded, it is not a filter "match" (its
+  // real name/price are unknown), so it is absent from `filteredMenu`. We still
+  // render its card in its Original Tacos slot — but only when no text/price
+  // filter is active and the category is Original Tacos or All, so a filtered
+  // view stays honest. On success the card renders as the matched row instead.
+  const tacoPending = taco.status !== 'success'
+  const tacoCategoryVisible = category === 'all' || category === 'Original Tacos'
+  const tacoTextPriceFilterActive = Boolean(search.trim()) || maxPrice !== 'any'
+  // "Popular" filter: the loading/error/notFound card has no confirmed popular
+  // flag from the API, but Original Tacos' Taco Suave is locally marked popular,
+  // so it may still appear under a popular-only filter while pending.
+  const showPendingTacoCard = tacoPending && tacoCategoryVisible && !tacoTextPriceFilterActive
 
   function clearFilters() {
     setSearch('')
@@ -109,10 +132,16 @@ function MenuPage() {
         <button className="clearFilters" type="button" onClick={clearFilters} disabled={!filtersActive}>Clear filters</button>
       </div>
       <p className="resultsCount" role="status" aria-live="polite">
-        {filtersActive ? resultCount + ' matching items' : 'All menu categories'}
+        {filtersActive
+          ? `${resultCount} matching ${resultCount === 1 ? 'item' : 'items'}`
+          : 'All menu categories'}
       </p>
       {filteredMenu.length ? <div className="menuList">
-        {filteredMenu.map(section => <MenuSection key={section.category} section={section} />)}
+        {filteredMenu.map(section => <MenuSection
+          key={section.category}
+          section={section}
+          taco={taco}
+          showPendingTacoCard={showPendingTacoCard} />)}
       </div> : <p className="emptyMessage">No dishes match these filters. Try changing your search, price, or category, or clear the filters.</p>}
     </section>
   </div>

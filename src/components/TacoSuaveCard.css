@@ -1,0 +1,118 @@
+/*
+ * Styles for the API-backed Taco Suave card (Tasks E2/E3).
+ *
+ * Kept in a dedicated stylesheet so the new loading / error / not-found and
+ * protein-selection UI does not touch Isaiah's existing App.css. The success
+ * state reuses the existing .menuRow / .menuRowContent / .price classes so the
+ * live item visually matches the other static rows in the grid; only the
+ * states and controls unique to this card live here.
+ *
+ * The colors mirror the existing chalkboard palette (cream/gold on dark) so the
+ * card blends into the surrounding menu.
+ */
+
+.tacoSuaveState {
+  display: flex;
+  gap: 16px;
+  min-width: 0;
+  padding: 21px 0;
+  border-bottom: 1px dashed rgba(239, 243, 225, .3);
+  color: var(--chalk-muted);
+}
+
+.tacoSuaveState p { margin: 0; line-height: 1.55; }
+
+.tacoSuaveState h4 { margin: 0 0 6px; color: #fff8e5; font-size: 1.07rem; }
+
+/* Loading */
+.tacoSuaveLoading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffe2ad;
+  font-weight: 700;
+}
+
+.tacoSuaveSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 226, 154, .35);
+  border-top-color: #ffe29a;
+  border-radius: 50%;
+  animation: tacoSuaveSpin .8s linear infinite;
+}
+
+@keyframes tacoSuaveSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tacoSuaveSpinner { animation: none; }
+}
+
+/* Error + retry and not-found share a block layout */
+.tacoSuaveMessage { flex-direction: column; align-items: flex-start; gap: 10px; }
+
+.tacoSuaveRetry {
+  padding: 8px 16px;
+  border: 2px solid #ffe29a;
+  border-radius: 99px;
+  background: transparent;
+  color: #ffe29a;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tacoSuaveRetry:hover { background: #ffe29a; color: #2a1a12; }
+
+/* Protein radio group */
+.tacoSuaveOptions {
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.tacoSuaveOptions legend {
+  padding: 0;
+  color: #ffe2ad;
+  font-weight: 750;
+  font-size: .9rem;
+}
+
+.tacoSuaveOptionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* The visible pill is the <label>; the native radio stays accessible but
+   visually compact beside it. */
+.tacoSuaveOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 2px solid rgba(239, 243, 225, .35);
+  border-radius: 99px;
+  color: #fff8e5;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.tacoSuaveOption:hover { border-color: #ffe29a; }
+
+/* Selected feedback (AC12): the option whose radio is checked. */
+.tacoSuaveOption:has(input:checked) {
+  border-color: #ffe29a;
+  background: rgba(255, 226, 154, .16);
+  color: #fff;
+}
+
+/* Keyboard focus ring (AC — accessible controls). */
+.tacoSuaveOption:has(input:focus-visible) {
+  outline: 3px solid #ffe29a;
+  outline-offset: 3px;
+}
+
+.tacoSuaveOptionDelta { color: #ffe29a; font-weight: 800; font-size: .85rem; }
