@@ -529,9 +529,9 @@ Add a Vite dev proxy mapping `/api` → the Express server.
   browser reaches Express; existing frontend behavior is otherwise unchanged.
 - **Manual step?** No.
 
-- [ ] **Task E2 — `TacoSuaveCard` component: fetch + loading/error/not-found states**
-Build the component with its four states (no selection UI yet). **Incomplete:**
-loading-state and 404/not-found rendered states are not yet verified in a browser.
+- [x] **Task E2 — `TacoSuaveCard` component: fetch + loading/error/not-found states**
+Build the component with its four states (no selection UI yet). All four rendered
+states (loading, success, error+Retry, not-found) are now user-verified in Safari.
   - **Implemented:** `src/components/TacoSuaveCard.jsx` + `useTacoSuave.js` hook +
     `TacoSuaveCard.css`. Fetches on mount via relative `/api` URL; loading spinner;
     error + Retry (re-fetch); not-found "currently unavailable"; success shows name +
@@ -542,11 +542,14 @@ loading-state and 404/not-found rendered states are not yet verified in a browse
     against a stub server — it does not render the component. Live 200/404 against the
     real DB and the backend-down→up proxy transition confirm the *network* behavior
     only, not the rendered states or the Retry button.
-  - **User browser checks (success + error path):** success shows the item once at
-    $5.25; stopping the backend + refreshing shows the error message and Retry button;
-    restarting + clicking Retry restores the item.
-  - **Pending browser verification:** the **loading** state and the **404/not-found**
-    rendered state. See `server/VERIFICATION.md`.
+  - **User browser checks (all four states, Safari — not automated UI tests):**
+    success shows the item once at $5.25 (AC5); the loading state shows then the item
+    loads successfully (AC6, via the local loading override); stopping the backend +
+    refreshing shows the error message and Retry button, and clicking Retry restores
+    the item (AC7); the not-found override shows the "currently unavailable" state
+    while the rest of the menu stays visible (AC8). After stopping the override and
+    returning to normal `npm run dev`, everything displayed correctly. No screenshots
+    were captured. See `server/VERIFICATION.md`.
 - **AC refs:** AC5, AC6, AC7, AC8
 - **Files:** `src/components/TacoSuaveCard.jsx`, styles as needed in `src/App.css`.
 - **Depends on:** E1
@@ -556,18 +559,21 @@ loading-state and 404/not-found rendered states are not yet verified in a browse
   `basePriceCents`.
 - **Manual step?** No.
 
-- [ ] **Task E3 — `TacoSuaveCard`: protein selection UI (exactly-one semantics, starts empty)**
-Add the "Choose one" radio group. **Incomplete:** keyboard-only operation and mobile
-layout are not yet verified.
+- [x] **Task E3 — `TacoSuaveCard`: protein selection UI (exactly-one semantics, starts empty)**
+Add the "Choose one" radio group. Pointer + Safari keyboard operation and narrow-window
+layout are now user-verified.
   - **Implemented:** group rendered from the API as native `<input type="radio">`
     sharing one `name` (browser-enforced at-most-one + replace-on-change); label
     "Choose one" from the API; `selectedOptionId` starts `null` (nothing
     pre-selected); selected state is both React-controlled and visibly indicated;
     keyboard focus ring; no blocking validation (display-only).
-  - **User browser checks:** neither protein starts selected; selecting one replaces
-    the other (via pointer).
-  - **Pending browser verification:** keyboard-only selection (Tab/arrow/space with
-    visible focus) and mobile layout. See `server/VERIFICATION.md`.
+  - **User browser checks (pointer):** neither protein starts selected; selecting one
+    replaces the other.
+  - **User browser checks (Safari keyboard):** Option+Tab reaches the controls, a
+    visible focus outline shows, arrow keys switch Steak/Chicken keeping exactly one
+    selected (AC11/AC12 + accessible focus). Narrow desktop-window layout stacks into
+    one column with price/description/controls readable (not a physical-device test).
+  - All `Done when` criteria below are confirmed. See `server/VERIFICATION.md`.
 - **AC refs:** AC3, AC9, AC10, AC11, AC12, AC13
 - **Files:** `src/components/TacoSuaveCard.jsx` (extend E2).
 - **Depends on:** E2

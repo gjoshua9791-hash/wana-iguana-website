@@ -57,15 +57,53 @@ Reported by the user in `restaurant-menu-integration`:
       (E2/AC7 rendered error state).
 - [x] Restarting the backend and clicking **Retry** restores the item
       (E2/AC7 Retry re-fetch, confirmed in the UI).
+- [x] **Keyboard operation** of the protein radios (Safari): Option+Tab reaches the
+      controls, a visible keyboard focus outline appears, and arrow keys switch
+      between Steak and Chicken while keeping exactly one selected (E3/AC11/AC12 +
+      accessibility).
+- [x] **Narrow-window layout** (Safari, narrow desktop window): menu items stack
+      into a single column and Taco Suave's price, description, and controls stay
+      readable. NOTE: this was a resized desktop window, **not** an actual-phone test.
+- [x] **Loading state** rendered in the UI — AC6. Using the local loading override
+      (below), the user saw the loading state in Safari, followed by Taco Suave
+      loading successfully.
+- [x] **404 / not-found** rendered state ("currently unavailable") — AC8. Using the
+      local not-found override (below), the user saw the unavailable state while the
+      rest of the menu stayed visible.
+- [x] **Return to normal** after stopping the override and restarting the normal
+      `npm run dev`: everything displayed correctly again.
+
+> These are **user-performed browser checks**, not automated UI tests. No website
+> screenshots were captured.
 
 ## Pending browser verification (not yet confirmed by anyone)
-- [ ] **Loading state** rendered in the UI (spinner/placeholder while the request
-      is in flight) — AC6.
-- [ ] **404 / not-found** rendered state ("currently unavailable") in the UI — AC8.
-      (The 404 HTTP path is proven automatically; the rendered state is not.)
-- [ ] **Keyboard-only** operation of the protein radios (Tab to reach, arrow/space
-      to select, visible focus) — accessibility portion of E3.
-- [ ] **Mobile layout** of the card and radios at a narrow viewport.
+- [ ] **Real-device mobile** layout (optional): the narrow-window check above was a
+      resized desktop window, not a physical phone / device-emulation test.
+
+### How the loading and 404 states were exercised (controlled, temporary, local)
+A dev-only override config, `vite.override.config.mjs`, intercepts ONLY the single
+`GET /api/menu/items/taco-suave` request at the Vite dev-server layer and either
+delays it (loading) or returns 404 (not-found). It is git-ignored, imports nothing
+from the app, adds NO test code to the production app, and does NOT touch Supabase.
+The real page, hook, and component ran unchanged.
+
+HTTP-layer behavior of the override was confirmed (loading → ~6s then 200;
+notfound → 404 `item_not_found`), and the **rendered** states were then observed by
+the user in Safari (recorded above).
+
+Run (from `restaurant-menu-integration/`), with the Express backend also running:
+```
+# Loading state (spinner visible ~6s, then the item loads normally):
+TACO_OVERRIDE=loading  npx vite --config vite.override.config.mjs
+# Not-found state ("This item is currently unavailable"):
+TACO_OVERRIDE=notfound npx vite --config vite.override.config.mjs
+```
+Open the printed URL at `#/menu` and watch the Taco Suave slot in Original Tacos.
+
+Remove the override afterward: stop that dev server (Ctrl+C) and return to the
+normal `npm run dev` (committed `vite.config.js`, no override). The override file
+may be left in place (git-ignored) or deleted with `rm vite.override.config.mjs`;
+neither affects the repo.
 
 ## Explicitly NOT done (per instructions)
 - No Supabase rows edited (F1 row/price/option DB-change proofs remain manual).
