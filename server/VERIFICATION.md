@@ -614,3 +614,60 @@ the repo. Its existing Taco Suave (`TACO_OVERRIDE`) modes are preserved.
 HTTP-layer confirmation this session (NOT browser rendering): loading → ~6.6s then
 200 with five items; empty → 200 `items: []`; error → 500 then a second request
 (Retry) → 200 with five items.
+
+---
+
+# Feature 3 — Burritos category: BACKEND verification (checkpoint)
+
+Backend-only checkpoint on `feature/burritos-catalog`. Frontend is reserved for a
+teammate (see `.kiro/specs/burritos-catalog/frontend-handoff.md`). No frontend
+source or root frontend config was touched. No shared Supabase migration was run.
+
+## What changed (additive)
+- `0008_double_portion_column.sql` — adds nullable
+  `modifier_option.double_portion_price_delta_cents` (CHECK NULL OR >= 0). No data,
+  no table change, covered by menu_backend's existing SELECT grant.
+- `0009_seed_burritos.sql` — seeds the seven burritos, base prices, the three
+  protein shapes (`burrito-protein` shared 1/1; `classic-protein` 0/1; seafood
+  `delmar-extra`/`fish-extra` 0/1), the reusable `wet-upgrade` 0/1, and all
+  per-option double-portion values.
+- `run_migrations.sh` — fixed list extended to 0001–0009.
+- `queries.ts` / `mapRows.ts` — SELECT + emit the additive per-option
+  `doublePortion` field; taco fields unchanged.
+
+## What each check exercises (do not conflate)
+- `verify_d2_mapper.mjs` — PURE mapper unit test (no DB, no HTTP). **12 passed.**
+- `verify_f3_http.mjs` — INJECTED HTTP test of the real route+mapper over a local
+  TCP listener using fake query fns; NOT a DB or TLS test. **10 passed.**
+- `verify_f2_http.mjs` — unchanged Feature-2 injected HTTP test. **9 passed.**
+- `verify_f3_burritos.sh` — LIVE isolated-DB test against throwaway local databases
+  (never Supabase); real runner; fresh + upgrade paths. **ALL PASSED.**
+- `verify_c2_local.sh`, `verify_d4_endpoint.sh` — isolated-DB runner/endpoint
+  invariants. **ALL PASSED** after updating c2's hard-coded ledger expectation
+  from 0001–0007 to 0001–0009 (invariant unchanged; d4 asserts only taco data).
+
+## Isolated-DB results (actual) — `verify_f3_burritos.sh`
+- PATH A (fresh): real runner applied all nine; ledger = 0001..0009; the 0008
+  column present; the full Burrito contract asserted (seven items + prices; Group A
+  deltas 0 / meats double 299 / veggies NULL; Classic +250/+299/+349 with doubles
+  299/349; seafood extras +349 double NULL; wet +429 double NULL; A required 1/1,
+  others 0/1; Del Mar/Grilled Fish have NO required protein group; no `wet`
+  menu_item).
+- PATH B (upgrade): applied 0001–0007 first, then the real runner SKIPPED 7 and
+  APPLIED exactly 0008,0009; pre-upgrade the column and burritos were absent; after
+  upgrade the identical Burrito contract held; a second runner run applied nothing.
+- **Original Tacos unchanged on BOTH paths:** five items in order; Taco Suave base
+  525; double meat 150; five protein options; taco options' new column is NULL.
+- Cleanup dropped both throwaway DBs and the menu_backend role.
+
+## Rollout dependency (operator, later; NOT executed here)
+See design §6a. Order: dry-run → apply 0008 then 0009 to shared Supabase (as
+`postgres`) → deploy/restart backend. Code in `queries.ts` selects
+`double_portion_price_delta_cents`, which exists only after 0008 — do NOT run the
+new backend against a database missing 0008. Backend rollback is safe; the additive
+column/seed can remain.
+
+## Secret-leak scan — CLEAN
+Staged backend files scanned (migrations, queries.ts, mapRows.ts, verify_f3_*,
+spec docs). No credentials, connection strings, tokens, or secrets. `server/.env`
+and `vite.override.config.mjs` remain git-ignored and were never read or printed.

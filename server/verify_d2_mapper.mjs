@@ -15,7 +15,7 @@ const base = {
 const row = (o) => ({ ...base, group_id: null, label: null, min_select: null,
   max_select: null, group_sort: null, double_meat_price_delta_cents: null,
   option_id: null, option_name: null, price_delta_cents: null, option_sort: null,
-  double_meat_available: null, ...o })
+  double_meat_available: null, double_portion_price_delta_cents: null, ...o })
 
 // 1. Zero rows -> null (route maps to 404)
 t('zero rows -> null', () => { assert.strictEqual(mapRowsToItem([]), null) })
@@ -103,6 +103,43 @@ t('double-meat: null link -> doubleMeat null', () => {
   const g = mapRowsToItem(rows).modifierGroups[0]
   assert.strictEqual(g.doubleMeat, null, 'no double meat offered -> null')
   assert.strictEqual(g.options[0].doubleMeatAvailable, false)
+})
+
+// 10. Feature 3: per-option doublePortion emitted (null when column null)
+t('double-portion: emitted per option; null when not doubleable', () => {
+  const rows = [
+    row({ group_id: 'burrito-protein', label: 'Choose one', min_select: 1, max_select: 1, group_sort: 1, option_id: 'burrito-steak',           option_name: 'Steak',           price_delta_cents: 0, option_sort: 1, double_portion_price_delta_cents: 299 }),
+    row({ group_id: 'burrito-protein', label: 'Choose one', min_select: 1, max_select: 1, group_sort: 1, option_id: 'burrito-grilled-veggies', option_name: 'Grilled Veggies', price_delta_cents: 0, option_sort: 5, double_portion_price_delta_cents: null }),
+  ]
+  const g = mapRowsToItem(rows).modifierGroups[0]
+  assert.strictEqual(g.doubleMeat, null, 'burrito group: no taco group-level doubleMeat')
+  const steak = g.options.find(o => o.id === 'burrito-steak')
+  const veg   = g.options.find(o => o.id === 'burrito-grilled-veggies')
+  assert.deepStrictEqual(steak.doublePortion, { priceDeltaCents: 299 }, 'meat doubleable +299')
+  assert.strictEqual(veg.doublePortion, null, 'veggies not doubleable')
+  assert.strictEqual(steak.doubleMeatAvailable, false, 'taco field untouched for burrito')
+})
+
+// 11. Feature 3: two groups per item, ordered by group_sort (protein then wet)
+t('two groups per item ordered by group_sort', () => {
+  const rows = [
+    row({ group_id: 'wet-upgrade',     label: 'Make it wet?', min_select: 0, max_select: 1, group_sort: 2, option_id: 'wet',           option_name: 'Wet',   price_delta_cents: 429, option_sort: 1, double_portion_price_delta_cents: null }),
+    row({ group_id: 'burrito-protein', label: 'Choose one',   min_select: 1, max_select: 1, group_sort: 1, option_id: 'burrito-steak', option_name: 'Steak', price_delta_cents: 0,   option_sort: 1, double_portion_price_delta_cents: 299 }),
+  ]
+  const item = mapRowsToItem(rows)
+  assert.deepStrictEqual(item.modifierGroups.map(g => g.id), ['burrito-protein', 'wet-upgrade'], 'group_sort order')
+  assert.strictEqual(item.modifierGroups[1].minSelect, 0, 'wet is optional')
+  assert.strictEqual(item.modifierGroups[1].options[0].priceDeltaCents, 429)
+})
+
+// 12. Feature 3: Feature 2 shape unchanged — options still carry doublePortion key
+t('existing taco option also carries doublePortion (null) — additive, non-breaking', () => {
+  const rows = [
+    row({ group_id: 'protein', label: 'Choose one', min_select: 1, max_select: 1, group_sort: 1, double_meat_price_delta_cents: 150, option_id: 'steak', option_name: 'Steak', price_delta_cents: 0, option_sort: 1, double_meat_available: true }),
+  ]
+  const o = mapRowsToItem(rows).modifierGroups[0].options[0]
+  assert.strictEqual(o.doubleMeatAvailable, true, 'taco eligibility preserved')
+  assert.strictEqual(o.doublePortion, null, 'additive field present and null for tacos')
 })
 
 console.log(`\nSUMMARY ${pass} passed, ${fail} failed`)

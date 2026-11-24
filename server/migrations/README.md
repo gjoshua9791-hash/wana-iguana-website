@@ -29,6 +29,11 @@ Apply strictly in ascending numeric order.
 | 2     | `0002_one_active_default.sql` | Partial unique index: ≤1 active default per item.  | authored (B2)     |
 | 3     | `0003_access_policies.sql`    | Access control: least-priv read role + RLS policies.| authored (C2 local)|
 | 4     | `0004_seed_taco_suave.sql`    | Seed the verified Taco Suave rows.                 | authored (B3)     |
+| 5     | `0005_menu_item_category.sql` | Add `menu_item.category` (Feature 2).              | authored          |
+| 6     | `0006_double_meat_columns.sql`| Taco double-meat columns (group + per-option).     | authored          |
+| 7     | `0007_seed_original_tacos.sql`| Seed the five Original Tacos.                      | authored          |
+| 8     | `0008_double_portion_column.sql`| Add `modifier_option.double_portion_price_delta_cents` (Feature 3, Burritos). | authored (B1) |
+| 9     | `0009_seed_burritos.sql`      | Seed the seven Burritos + groups/options + wet.    | authored (B2)     |
 
 > Numbering note: the seed is deliberately numbered `0004`, after the access
 > control migration `0003`, so that **access controls are applied before any seed

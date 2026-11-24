@@ -34,6 +34,10 @@ export interface DefaultVariantRow extends QueryResultRow {
   // Per-option double-meat availability (Feature 2). Non-null for any real
   // option row; LEFT JOIN nulls it only when there is no option row.
   double_meat_available: boolean | null
+  // Per-option double-portion surcharge (Feature 3). NULL = this option cannot be
+  // doubled; a non-null integer is the cents to add a second portion of THIS
+  // option. Independent of the Feature 2 taco fields above.
+  double_portion_price_delta_cents: number | null
 }
 
 /**
@@ -58,7 +62,8 @@ SELECT mi.id   AS item_id, mi.name AS item_name, mi.description,
        vmg.double_meat_price_delta_cents,
        mo.id   AS option_id, mo.name AS option_name, mo.price_delta_cents,
        mo.sort_order AS option_sort,
-       mo.double_meat_available
+       mo.double_meat_available,
+       mo.double_portion_price_delta_cents
 FROM default_variant dv
 JOIN public.menu_item mi            ON mi.id = dv.item_id
 LEFT JOIN public.variant_modifier_group vmg ON vmg.variant_id = dv.id
