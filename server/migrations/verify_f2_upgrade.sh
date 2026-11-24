@@ -109,8 +109,9 @@ dm_suave="$("$PSQL" -X "$URL" -At -c "select double_meat_price_delta_cents from 
 five="$("$PSQL" -X "$URL" -At -c "select string_agg(id,',' order by sort_order,id) from public.menu_item where category='original-tacos' and is_active")"
 [ "$five" = "taco-suave,taco-duro,taco-bravo,taco-del-mar,taco-supreme" ] && pass "all five Original Tacos present, in order" || fail "five='$five'"
 
-# Read-only runtime: create a throwaway LOGIN user in menu_backend and check perms.
-"$PSQL" -X "$URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE f2_probe_login LOGIN PASSWORD 'x' IN ROLE menu_backend;" >/dev/null 2>&1 || true
+# Read-only runtime checks: the privilege probes below use the menu_backend role
+# directly (has_table_privilege and SET ROLE menu_backend), so no throwaway LOGIN
+# user is created or dropped by this test.
 sel_ok="$("$PSQL" -X "$URL" -At -c "select has_table_privilege('menu_backend','public.menu_item','SELECT')")"
 ins_no="$("$PSQL" -X "$URL" -At -c "select has_table_privilege('menu_backend','public.menu_item','INSERT')")"
 upd_no="$("$PSQL" -X "$URL" -At -c "select has_table_privilege('menu_backend','public.menu_item','UPDATE')")"
@@ -124,7 +125,6 @@ printf '%s' "$wr" | grep -q 'permission denied' && pass "executed write as menu_
 # SET ROLE prints a "SET" line; take the last output line as the scalar result.
 newcol="$("$PSQL" -X "$URL" -At -c "SET ROLE menu_backend; SELECT count(*) FROM public.menu_item WHERE category='original-tacos';" 2>&1 | tail -1 || true)"
 [ "$newcol" = "5" ] && pass "menu_backend can SELECT new 'category' column (grant covers new cols)" || fail "newcol read='$newcol'"
-"$PSQL" -X "$URL" -v ON_ERROR_STOP=1 -c "DROP ROLE IF EXISTS f2_probe_login;" >/dev/null 2>&1 || true
 
 # ---- Step 5: runner again applies nothing -------------------------------------
 echo "=== Step 5: run the runner AGAIN (must apply nothing) ==="

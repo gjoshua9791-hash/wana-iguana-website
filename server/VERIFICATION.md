@@ -219,8 +219,9 @@ executed anon-role rejection (SQLSTATE 42501). ✅
 
 ## Notes
 
-- No commit, push, or deploy performed in this documentation pass. No cart/ordering/
-  Clover work.
+- **At the time of the Feature 1 (Phase E/F) verification session,** no commit, push,
+  or deploy had been performed in that documentation pass (the work was committed and
+  pushed later, in its own checkpoint step). No cart/ordering/Clover work.
 - **F1 DB edits** against the dev Supabase database were temporary and each reverted
   by a committed restore/cleanup (see Phase F1); no schema or migrations were touched.
 
@@ -297,11 +298,14 @@ state. **Task F1: complete.**
 
 # Feature 2 — Original Tacos category: backend verification
 
-Branch `feature/original-tacos-catalog`. Backend only. **No shared Supabase access,
-no commit/push.** Verified TLS in `db.ts` is unchanged (`rejectUnauthorized: true`).
-All DB-backed checks ran against **uniquely named, disposable local databases** that
-are dropped on exit; the cluster role `menu_backend` is only touched when this run
-created it. No shared or retained test database was used.
+Branch `feature/original-tacos-catalog`. Backend only. **During the verification
+session this record describes, no shared Supabase access occurred and nothing was
+committed or pushed** (the backend was committed and pushed afterward in its own
+checkpoint; these focused corrections are a later commit again). Verified TLS in
+`db.ts` is unchanged (`rejectUnauthorized: true`). All DB-backed checks ran against
+**uniquely named, disposable local databases** that are dropped on exit; the cluster
+role `menu_backend` is only touched when a run created it. No shared or retained test
+database was used.
 
 ## What each check actually exercises (do not conflate)
 - **Pure unit (no DB, no HTTP):** `verify_d2_mapper.mjs` — the mapper over synthetic rows.
@@ -391,8 +395,12 @@ reverse. Rolling back the backend (to the pre-Feature-2 build) is safe against t
 migrated schema because the new columns are additive and ignored by old code.
 
 ### Post-rollout follow-up (not now)
-`verify_d1_connection.mjs` asserts Taco Suave returns exactly `steak,chicken` (2 rows)
-against the live `DATABASE_URL`. That is correct for the CURRENT pre-rollout shared DB;
-it was deliberately left unchanged and NOT run this turn. **After** the shared rollout
-(step 2), update its assertion to the five-option set before running it against the
-migrated shared DB.
+`verify_d1_connection.mjs` already expects the **post-0007 five-option catalog**
+(five Taco Suave protein options in confirmed order, all `priceDeltaCents 0`,
+`minSelect/maxSelect 1/1`, double-meat group delta 150, meats doubleable / grilled
+veggies not). It therefore does **not** need another edit. Because it asserts the
+post-0007 shape, it must only be run against a DB migrated **through 0007** — against
+the current pre-rollout shared DB it would (correctly) fail. **After** the shared
+rollout (step 2 above), it needs **execution** against the migrated shared DB — no
+further code change. It was deliberately NOT run this turn (would touch shared
+Supabase before rollout).
