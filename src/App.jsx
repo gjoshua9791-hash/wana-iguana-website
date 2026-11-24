@@ -83,7 +83,7 @@ function HomePage() {
     <section className="specialsSection" aria-labelledby="specials-title">
       <p className="eyebrow">Something Different To Try</p>
       <h2 id="specials-title">Wana Specials</h2>
-      <p>These items are from the Wana Specials menu category. Call the restaurant about today’s specials, prices and availability.</p>
+      <p>These items are from the Wana Specials. Call the restaurant about today’s specials, prices and availability.</p>
       <div className="menuCategory homeSpecialsBoard">
         <div className="menuRows">
           {specials.items.map(item => <MenuItem key={item.name} item={item} />)}
