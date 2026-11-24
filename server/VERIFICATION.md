@@ -595,14 +595,16 @@ is a category-availability indicator, **separate from the matching-item count**
 (`resultCount` is computed from `filteredMenu` only, which never contains the notice),
 and unloaded/unavailable tacos remain excluded from results with no static fallback.
 
-**Re-verify with an ACTIVE filter (browser, pending user observation):** set a search
-term (e.g. "taco") or a maximum price, then exercise each override mode:
-- loading → the notice shows **while the filter is active**, then resolves to the five
-  tacos (which the filter then applies to);
-- error → the notice **and Retry** show with the filter active; clicking Retry
-  **preserves the current search/price/popular filters** (they are React state,
-  untouched by Retry) and recovers to the filtered results;
-- the "N matching items" count reflects only loaded, matching items — never the notice.
+**Re-verified with an ACTIVE filter — COMPLETED (user-performed, Safari):**
+- [x] With search **"taco"** and maximum price **"$10 or less"** applied, the **error
+      notice and Retry stayed visible** (not hidden by the active filters).
+- [x] Clicking the app's **Retry** restored **all five** Original Tacos and
+      **preserved both filters** (search and max price unchanged).
+- [x] The **matching-item count changed from 2 to 7** on recovery — confirming the
+      count reflects loaded, matching items and is separate from the notice.
+
+User-performed Safari check (not an automated test). This closes the
+category-notice-under-filters re-verification.
 
 Cleanup afterward: stop the override dev server (Ctrl+C in Terminal 2) and return to
 the normal `npm run dev` (committed `vite.config.js`, no override). The override file
