@@ -1,6 +1,8 @@
 import express, { type Express, type Request, type Response } from 'express'
+import { pathToFileURL } from 'node:url'
 import { loadServerConfig } from './config.js'
 import { createMenuRouter } from './menu/router.js'
+import { createCategoryRouter } from './menu/categoryRouter.js'
 
 /**
  * Wana Iguana backend — health server with environment configuration.
@@ -40,18 +42,35 @@ export function createApp(): Express {
     res.status(200).json({ ok: true })
   })
 
-  // Database-backed menu route. Uses the lazy pool, so mounting it here does not
-  // open a connection; /health above remains usable without a configured DB.
+  // Database-backed menu routes. Both use the lazy pool, so mounting them here
+  // does not open a connection; /health above remains usable without a configured
+  // DB. The single-item router (Feature 1) and the category router (Feature 2) are
+  // separate files; the single-item route's contract/behavior is unchanged.
   app.use(createMenuRouter())
+  app.use(createCategoryRouter())
 
   return app
 }
 
-loadDotEnvIfPresent()
+/**
+ * Start the server only when this module is run directly (the normal entry
+ * point), not when it is imported (e.g. by an HTTP test that reuses
+ * {@link createApp}). This preserves production behavior — `node dist/index.js`
+ * still loads `.env`, resolves PORT, and listens — while allowing tests to import
+ * `createApp` without binding a port or loading `.env` as a side effect.
+ */
+function startServer(): void {
+  loadDotEnvIfPresent()
+  const app = createApp()
+  const { port } = loadServerConfig()
+  app.listen(port, () => {
+    console.log(`Wana Iguana backend listening on http://localhost:${port}`)
+  })
+}
 
-const app = createApp()
-const { port } = loadServerConfig()
-
-app.listen(port, () => {
-  console.log(`Wana Iguana backend listening on http://localhost:${port}`)
-})
+// `process.argv[1]` is the script node was invoked with. When this compiled file
+// is the entry point (`node dist/index.js`), start listening; when imported
+// (e.g. by a test), do nothing at module load.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  startServer()
+}

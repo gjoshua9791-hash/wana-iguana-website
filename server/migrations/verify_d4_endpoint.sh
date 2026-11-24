@@ -98,7 +98,13 @@ FROM ( $(printf '%s' "$DV_SQL" | sed "s/\\\$1/'taco-suave'/") ) q;
 SQL
 )"
 [ "$summary" = "525|Choose one|1|1" ] && pass "happy: 525 / Choose one / minSelect 1 / maxSelect 1" || fail "happy summary='$summary'"
-[ "$opts" = "steak:0,chicken:0" ] && pass "happy: options steak,chicken with priceDeltaCents=0 in order" || fail "happy opts='$opts'"
+# NOTE: after Feature 2 (0007) Taco Suave's protein group is the INTENTIONALLY
+# expanded five-option set (steak, chicken, shredded beef/chicken, grilled veggies),
+# all priceDeltaCents=0. The runner provisions 0001-0007, so this harness asserts the
+# post-expansion option set. (The exactly-one rule, 525 base, and index/404 invariants
+# below are unchanged from Feature 1.)
+exp_opts="steak:0,chicken:0,shredded-beef:0,shredded-chicken:0,grilled-veggies:0"
+[ "$opts" = "$exp_opts" ] && pass "happy: five protein options, priceDeltaCents=0, in sort order" || fail "happy opts='$opts' exp='$exp_opts'"
 
 echo "=== Criterion 2: missing active default -> query returns ZERO rows ==="
 "$PSQL" -X "$URL" -v ON_ERROR_STOP=1 -c "UPDATE public.menu_item SET is_active=true WHERE id='taco-suave';" >/dev/null

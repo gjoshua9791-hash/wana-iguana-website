@@ -291,3 +291,108 @@ and the deterministic-variant half of **AC4** (F1.2), the no-merging half of **A
 plus **AC3** (F1.3). Each mutation was committed, observed, and reverted by a committed
 restore/cleanup with matching row counts; the shared catalog is back to its original
 state. **Task F1: complete.**
+
+
+---
+
+# Feature 2 — Original Tacos category: backend verification
+
+Branch `feature/original-tacos-catalog`. Backend only. **No shared Supabase access,
+no commit/push.** Verified TLS in `db.ts` is unchanged (`rejectUnauthorized: true`).
+All DB-backed checks ran against **uniquely named, disposable local databases** that
+are dropped on exit; the cluster role `menu_backend` is only touched when this run
+created it. No shared or retained test database was used.
+
+## What each check actually exercises (do not conflate)
+- **Pure unit (no DB, no HTTP):** `verify_d2_mapper.mjs` — the mapper over synthetic rows.
+- **Injected HTTP tests (real Express over local TCP, NO DB, NO TLS):**
+  `verify_f2_http.mjs` — boots the actual mounted category route with **injected**
+  query functions (a dependency seam on `createCategoryRouter`). The production pool
+  and its verified TLS are never involved. **These are NOT a live Supabase connection
+  test and NOT a DB integration test.**
+- **Isolated-DB integration (real local PostgreSQL, disposable):**
+  `migrations/verify_f2_category.sh`, `migrations/verify_f2_upgrade.sh`,
+  `migrations/verify_d4_endpoint.sh`, `migrations/verify_c2_local.sh` — apply real
+  migrations via the real runner into throwaway DBs and assert on real SQL results.
+- **NOT run this turn (would touch shared Supabase):** `verify_d1_connection.mjs`
+  (connects to the real `DATABASE_URL`). See the rollout note about its post-rollout
+  assertion update.
+
+## Results (actual)
+- `npm run build`: clean. `npm run lint`: clean (0 problems).
+- `verify_d2_mapper.mjs`: **9/9** (incl. the two double-meat cases).
+- `verify_f2_http.mjs`: **9/9** — Original Tacos success + exact extended shape
+  (`doubleMeat` + per-option `doubleMeatAvailable`); empty category → 200 `items:[]`;
+  unknown category → 200 `items:[]` (spec: not 404 this feature); unavailable-item
+  (no active default variant) omitted; query failure → **500 `{"error":"internal_error"}`**
+  (generic body; server log sanitized); `/health` → 200 `{"ok":true}` on the real app
+  (DB-independent, proven by importing `createApp` without the module binding a port).
+- `verify_f2_category.sh` (isolated DB): **ALL PASSED** — ordering `(sort_order,id)`;
+  confirmed prices 525/525/525/850/675; grouping (`protein`=5, `protein-duro`=2,
+  `protein-seafood`=2, all `min/max 1/1`); all protein deltas $0; double-meat link
+  deltas (Suave/Bravo 150, Supreme 299, Duro/Del-Mar NULL); per-option availability
+  (meats TRUE; veggies/seafood FALSE); authoritative omission at the route-equivalent
+  layer.
+- `verify_f2_upgrade.sh` (isolated DB): **ALL PASSED** — apply 0001–0004 first, then
+  the **real runner** SKIPs those 4 and APPLYs only 0005/0006/0007; ledger = 0001..0007;
+  Taco Suave data preserved (name/525/default/active); options expanded to five
+  (steak/chicken preserved first); Suave double-meat 150 added; all five tacos present;
+  runtime role read-only (SELECT ok incl. the new `category` column, writes denied,
+  executed write rejected); a second runner run applies nothing.
+- `verify_d4_endpoint.sh` (isolated DB): **ALL PASSED** (Feature-1 invariants hold on
+  the 0001–0007 schema: index rejection, missing-default → 0 rows, happy path).
+- `verify_c2_local.sh` (isolated DB): **ALL PASSED** (access control + runner
+  idempotency on the full 0001–0007 order).
+
+## Part 3 — stale assertions corrected (invariants preserved)
+The intentional Taco Suave expansion (2 → 5 options, +150 double meat) invalidated some
+hard-coded Feature-1 expectations in scripts that now provision 0001–0007:
+- `verify_d4_endpoint.sh`: happy-path option assertion updated from `steak,chicken` to
+  the five-option set; the exactly-one / 525 / index / 404 invariants are unchanged.
+- `verify_c2_local.sh`: ledger/skip/apply counts updated from 4 to 7; the per-table
+  read assertions relaxed from exact counts to "read succeeds (≥1 row)"; the
+  default-variant price read now targets `taco-suave-base` by id (multiple active
+  defaults now exist). All access-control invariants (SELECT works, writes/ledger/
+  PUBLIC denied, anon/authenticated REVOKE) are unchanged.
+- `verify_d2_mapper.mjs`: `row()` helper gained the two new columns; two cases added;
+  existing cases unchanged.
+- **Unchanged on purpose:** `verify_b1_b2.sh` and `verify_b3_seed.sh` apply only their
+  own Feature-1 files (not the runner), so their 0004-scoped assertions remain valid.
+  `verify_d3_timeout.mjs` / `verify_e_states.mjs` use local stubs (no catalog shape).
+
+## Part 4 — example category JSON: provenance
+The example category JSON shown in the previous turn's report was **generated by the
+real `mapRowsToItem` over synthetic rows** (a small Node script feeding
+representative rows into the compiled mapper). It was **not captured from an HTTP
+response** and is **not** from a live Supabase query. The injected HTTP test
+(`verify_f2_http.mjs`) separately confirms the route emits that same shape over real
+HTTP with injected data.
+
+## Part 5 — rollout dependency and order (for later review; NOT executed here)
+**The updated backend REQUIRES migrations 0005–0007. Do NOT run the new backend code
+against the old (pre-0005) schema** — `queryCategoryItemIds` reads `menu_item.category`,
+the category route and mapper read `double_meat_available` /
+`double_meat_price_delta_cents`; those columns do not exist until 0005/0006, so the
+new code against the old schema would error (500s).
+
+Exact order for the shared Supabase rollout (operator-run, later):
+1. **Dry-run (read-only):**
+   `DB_URL="postgresql://OPERATOR@POOLER_HOST:5432/postgres" server/migrations/run_migrations.sh --dry-run`
+   Expect: 0001–0004 shown `SKIP (recorded)`, 0005/0006/0007 shown `APPLY`.
+2. **Apply (operator):**
+   `DB_URL="postgresql://OPERATOR@POOLER_HOST:5432/postgres" server/migrations/run_migrations.sh`
+   Expect: 0005/0006/0007 applied atomically with their ledger rows; ledger = 0001..0007.
+3. **Deploy/restart the backend** (build + restart Express) **only after** step 2
+   succeeds, so the running code always matches a schema that has 0005–0007.
+4. Backend is read-only; no data backfill needed beyond the seed in 0007.
+
+Order summary: **migrate (0005→0006→0007) first, then restart the backend.** Never the
+reverse. Rolling back the backend (to the pre-Feature-2 build) is safe against the
+migrated schema because the new columns are additive and ignored by old code.
+
+### Post-rollout follow-up (not now)
+`verify_d1_connection.mjs` asserts Taco Suave returns exactly `steak,chicken` (2 rows)
+against the live `DATABASE_URL`. That is correct for the CURRENT pre-rollout shared DB;
+it was deliberately left unchanged and NOT run this turn. **After** the shared rollout
+(step 2), update its assertion to the five-option set before running it against the
+migrated shared DB.
