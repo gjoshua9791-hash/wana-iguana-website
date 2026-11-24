@@ -585,6 +585,25 @@ Open the printed URL at `#/menu`, Original Tacos category. Expected browser resu
   usable); clicking **Retry** re-requests and the five taco rows load (the override
   fails only the first request, so Retry recovers without restarting anything).
 
+#### Fix: category notice is visible regardless of search/price/popular filters
+Earlier, `showTacosNotice` was additionally gated by "no text/price filter active",
+which hid the loading/error/empty notice — and the **Retry** button during a failure —
+whenever a search or maximum-price filter was on. Fixed: the notice now shows whenever
+the **category selection is All or Original Tacos**, independent of search, maximum
+price, or popular-only. It stays hidden for any other selected category. The notice
+is a category-availability indicator, **separate from the matching-item count**
+(`resultCount` is computed from `filteredMenu` only, which never contains the notice),
+and unloaded/unavailable tacos remain excluded from results with no static fallback.
+
+**Re-verify with an ACTIVE filter (browser, pending user observation):** set a search
+term (e.g. "taco") or a maximum price, then exercise each override mode:
+- loading → the notice shows **while the filter is active**, then resolves to the five
+  tacos (which the filter then applies to);
+- error → the notice **and Retry** show with the filter active; clicking Retry
+  **preserves the current search/price/popular filters** (they are React state,
+  untouched by Retry) and recovers to the filtered results;
+- the "N matching items" count reflects only loaded, matching items — never the notice.
+
 Cleanup afterward: stop the override dev server (Ctrl+C in Terminal 2) and return to
 the normal `npm run dev` (committed `vite.config.js`, no override). The override file
 is git-ignored; leave it in place or `rm vite.override.config.mjs` — neither affects

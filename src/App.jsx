@@ -113,14 +113,16 @@ function MenuPage() {
 
   // When the category has not successfully loaded, its items are absent from
   // `filteredMenu`. We render a category-level notice (loading / error+Retry /
-  // empty) in the Original Tacos slot — but only when that category would be
-  // visible in the current view: the category filter is All or Original Tacos,
-  // and no text/price filter is active (which the pending items couldn't be known
-  // to satisfy). This keeps filtered views honest and other categories usable.
+  // empty) in the Original Tacos slot whenever that category is in view — i.e. the
+  // category selection is All or Original Tacos — REGARDLESS of search, maximum
+  // price, or popular-only filters. The notice reports category availability, not a
+  // filter match, so an active search/price/popular filter must NOT hide it (that
+  // would hide Retry during a failure). The unloaded/unavailable tacos stay excluded
+  // from the matching results (no static fallback); the notice is separate from the
+  // matching-item count. When another category is selected, the notice is hidden.
   const tacosPending = tacos.status !== 'success'
   const tacosCategoryVisible = category === 'all' || category === ORIGINAL_TACOS
-  const textOrPriceFilterActive = Boolean(search.trim()) || maxPrice !== 'any'
-  const showTacosNotice = tacosPending && tacosCategoryVisible && !textOrPriceFilterActive
+  const showTacosNotice = tacosPending && tacosCategoryVisible
 
   function clearFilters() {
     setSearch('')
