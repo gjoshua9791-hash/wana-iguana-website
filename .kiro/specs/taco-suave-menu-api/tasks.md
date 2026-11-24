@@ -614,23 +614,48 @@ Replace the static Taco Suave row with `TacoSuaveCard` in its existing position.
 
 ## Phase F — Verification & teammate documentation
 
-- [ ] **Task F1 — End-to-end verification (data proven to come from PostgreSQL)**
+- [x] **Task F1 — End-to-end verification (data proven to come from PostgreSQL)**
 Run the verification plan from design §8 against the shared dev DB (edit seed rows
-only, revert after each).
+only, revert after each). **User-performed** against the dev Supabase DB with guarded,
+committed changes each reverted by a committed restore/cleanup; full results in
+`server/VERIFICATION.md` → Phase F1.
 - **AC refs:** AC1, AC3, AC4, AC5, AC8
 - **Files:** `server/VERIFICATION.md` recording results (checkboxes).
 - **Depends on:** D4, E4, C2
 - **Done when (observed and recorded):**
-  1. **DB change reaches the UI** — editing `menu_item.name` for `taco-suave` in the
-     DB changes the displayed name on reload, with **no code change**. Revert.
-  2. **Missing default → 404** — making the default variant inactive makes the UI show
-     "item unavailable". Revert.
-  3. **No merging** — a non-default second variant does not alter the response.
-  4. 404 for unknown id; error+Retry when the DB is unreachable.
-- **Manual step?** 🔧 Yes — editing dev data in Supabase and observing the UI.
+  1. **DB change reaches the UI** — name changed to "Taco Suave (DB test 1749)" via a
+     guarded UPDATE; the site showed it with no code change; restored (both UPDATE 1 +
+     COMMIT). ✅ (AC1, AC5)
+  2. **Missing default → 404** — set `taco-suave-base.is_active=false`; browser got
+     404 and "currently unavailable" while other items stayed visible; restored
+     (UPDATE 1 + COMMIT), item returned. ✅ (AC4, AC8)
+  3. **No merging** — a committed non-default 999-cent variant with a modifier linked
+     only to it (run IDs `f1-alt/-group/-option-20261123-1756-a83c`) did not alter the
+     API or site (still `taco-suave-base`, 525, Protein Steak/Chicken,
+     minSelect/maxSelect 1/1); cleanup = four DELETE 1 + COMMIT. ✅ (AC4, AC3)
+  4. 404 for unknown id and error+Retry on unreachable DB — reused from Phase C2/D and
+     Phase E (not re-run). ✅ (AC8, AC7)
+- **Manual step?** 🔧 Yes — done: editing dev data in Supabase and observing the UI
+  (user-performed), each edit reverted; no schema/migrations touched.
 
-- [ ] **Task F2 — Secret-leak & public-write checks**
+- [x] **Task F2 — Secret-leak & public-write checks**
 Confirm no secrets leak and the catalog is not publicly writable.
+  - **Secret-leak (satisfied):** fresh-build grep over `dist/`+`src/` is CLEAN;
+    `server/.env` confirmed git-ignored (contents never read; git-ignore reduces
+    accidental-commit risk but is not a guarantee); frontend code calls only the
+    relative `/api` URL and never imports `DATABASE_URL`. **User-performed Safari
+    Network-tab inspection** of `GET /api/menu/items/taco-suave` → 200 with the
+    expected menu JSON (`basePriceCents 525`, Steak/Chicken) and **no** credentials,
+    connection strings, or keys in the URL, headers, or response.
+  - **Public-write (satisfied):** configuration + privilege inspection
+    (`migrations/VERIFY_C2_SUPABASE_RESULTS.md`: no write privilege for
+    `anon`/`authenticated`/`PUBLIC`; `0003` REVOKEs + SELECT-only RLS), the
+    runtime-login `UPDATE` rejection, **and a user-performed executed anon-role probe**
+    (`BEGIN; SET LOCAL ROLE anon; … UPDATE public.menu_item SET name = name WHERE
+    false; ROLLBACK;`) → `current_user = anon`, **SQLSTATE 42501 permission denied for
+    table menu_item**, rolled back, no rows changed, no privileges granted. This is a
+    database-role permission test, **not** an HTTP/Data-API test. See
+    `server/VERIFICATION.md` → Phase F2.
 - **AC refs:** AC15
 - **Files:** append results to `server/VERIFICATION.md`.
 - **Depends on:** E4, C3
@@ -639,8 +664,18 @@ Confirm no secrets leak and the catalog is not publicly writable.
 - **Manual step?** 🔧 Partially — inspecting the browser network tab / attempting a
   write.
 
-- [ ] **Task F3 — Teammate setup documentation**
+- [x] **Task F3 — Teammate setup documentation**
 Write the "get it running locally" guide for the three of us.
+  - **Done:** `server/README.md` rewritten as a full clone-to-running guide: Node
+    version + `npm ci` from committed lockfiles (frontend + backend); working from
+    `integration/frontend-backend`; `cp .env.example .env` (git-ignored); obtaining
+    the **runtime** credential privately and configuring `DB_CA_CERT` for verified
+    TLS; two-terminal startup; expected `/health`, `/api/menu/items/taco-suave`
+    (200/404) and browser results; a common-connection-errors table; and an explicit
+    **"application startup vs. operator-only migrations"** section telling teammates
+    NOT to rerun shared migrations to start the app. The temporary local override is
+    **not** presented as a teammate resource. The root `README.md` already points to
+    `server/README.md`. Stresses `.env` is never committed and never `VITE_`-prefixed.
 - **AC refs:** AC15, AC17
 - **Files:** `server/README.md` (expand): prerequisites, copying `.env.example` →
   `.env`, getting the shared connection string securely, applying migrations, running
