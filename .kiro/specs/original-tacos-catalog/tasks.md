@@ -58,7 +58,7 @@ Double-meat display label confirmed as **"Double meat"**. Recorded in
 
 ## Track B — Backend (all under `server/`)
 
-- [ ] **Task B1 — Additive migration: `menu_item.category` + `sort_order`**
+- [x] **Task B1 — Additive migration: `menu_item.category` + `sort_order`**
 Add nullable `category` and defaulted `sort_order` columns and backfill Taco Suave.
 - **AC refs:** AC1, AC10
 - **Files:** `server/migrations/0005_menu_item_category.sql` (ALTER TABLE ADD COLUMN
@@ -72,7 +72,7 @@ Add nullable `category` and defaulted `sort_order` columns and backfill Taco Sua
   in the file).
 - **Manual step?** No (applying to the shared DB is a tracked operator step — see B6).
 
-- [ ] **Task B1b — Additive migration: double-meat columns**
+- [x] **Task B1b — Additive migration: double-meat columns**
 Add the two columns that represent the double-meat↔protein dependency (design §1a).
 - **AC refs:** AC14, AC16, AC10
 - **Files:** `server/migrations/0006_double_meat_columns.sql` —
@@ -86,7 +86,7 @@ Add the two columns that represent the double-meat↔protein dependency (design 
   the existing table-level `SELECT` grants (no new grant).
 - **Manual step?** No (applying is B6).
 
-- [ ] **Task B1a — REQUIRED: extend the migration runner's fixed list**
+- [x] **Task B1a — REQUIRED: extend the migration runner's fixed list**
 The runner does not auto-discover files; it holds a hard-coded ordered `MIGRATIONS`
 array and validates the ledger as a literal prefix of it (see `design.md` §4a).
 - **AC refs:** AC10
@@ -98,7 +98,7 @@ array and validates the ledger as a literal prefix of it (see `design.md` §4a).
   prefix validator accepts the current ledger); array order matches filename order.
 - **Manual step?** No.
 
-- [ ] **Task B2 — Additive seed: items, confirmed variants, protein groups, options, links, double meat**
+- [x] **Task B2 — Additive seed: items, confirmed variants, protein groups, options, links, double meat**
 Seed the four items, their **price-confirmed** default variants, the confirmed protein
 groups/options with `double_meat_available`, and the variant↔group links carrying
 `min/max = 1/1` and per-item `double_meat_price_delta_cents`; plus the **intentional
@@ -120,7 +120,7 @@ Taco Suave expansion** (five options + 150 double meat) via explicit UPDATEs.
   (`protein`=5, `protein-duro`=2, `protein-seafood`=2 — design §2b).
 - **Manual step?** No (applying is B6).
 
-- [ ] **Task B3 — Category item-id query**
+- [x] **Task B3 — Category item-id query**
 Add a parameterized query returning the active items of a category in display order.
 - **AC refs:** AC1, AC2, AC9, AC14
 - **Files:** `server/src/menu/queries.ts` — add `queryCategoryItemIds(category)`
@@ -135,7 +135,7 @@ Add a parameterized query returning the active items of a category in display or
   behavior; `queryDefaultVariant` signature unchanged.
 - **Manual step?** No.
 
-- [ ] **Task B3m — Mapper emits the additive double-meat fields**
+- [x] **Task B3m — Mapper emits the additive double-meat fields**
 Extend the row→JSON mapper to surface the dependency fields.
 - **AC refs:** AC14, AC15, AC16
 - **Files:** `server/src/menu/mapRows.ts` — in `mapRowsToItem`, set each group's
@@ -149,7 +149,7 @@ Extend the row→JSON mapper to surface the dependency fields.
   and ordering unchanged.
 - **Manual step?** No.
 
-- [ ] **Task B4 — Category list route (new file) + list assembly**
+- [x] **Task B4 — Category list route (new file) + list assembly**
 Add `GET /api/menu/categories/:categoryId` reusing the per-item query+mapper.
 - **AC refs:** AC2, AC3, AC4
 - **Files:** `server/src/menu/categoryRouter.ts` (new); mount in
@@ -166,7 +166,7 @@ Add `GET /api/menu/categories/:categoryId` reusing the per-item query+mapper.
   asserting byte-identical output).
 - **Manual step?** No.
 
-- [ ] **Task B6 — 🔧 Apply new migrations to the shared dev DB (operator, tracked)**
+- [x] **Task B6 — 🔧 Apply new migrations to the shared dev DB (operator, tracked)**
 Apply `0005`/`0006`/`0007` with the tracked runner; never re-run applied ones.
 - **AC refs:** AC10
 - **Files:** none (operator action); ledger records the new filenames.
@@ -174,72 +174,88 @@ Apply `0005`/`0006`/`0007` with the tracked runner; never re-run applied ones.
 - **Done when:** `run_migrations.sh --dry-run` shows only the new files pending (it will
   not even see them unless B1a extended the array), then a real run records them in
   `schema_migrations`; access controls unchanged; a SELECT confirms the new rows,
-  columns, and the Suave expansion. **Not run in the planning turn.**
-- **Manual step?** 🔧 Yes — operator applies to the shared Supabase DB.
+  columns, and the Suave expansion.
+- **DONE (user-executed against shared Supabase, screenshots):** 0005–0007 applied;
+  ledger = 0001–0007; follow-up dry-run skipped all seven; post-migration SQL returned
+  all five tacos with expected prices, selection limits, double-meat surcharges, and
+  option counts. See `server/VERIFICATION.md` → "Feature 2 — shared Supabase rollout".
+- **Manual step?** 🔧 Yes — operator applied to the shared Supabase DB (completed).
 
 ---
 
 ## Track F — Frontend (all under `src/`)
 
-- [ ] **Task F1 — Reusable `MenuItemCard` component**
-Generalize `TacoSuaveCard` into a component that renders any catalog item + states.
-- **AC refs:** AC5, AC6
-- **AC refs:** AC5, AC6, AC12, AC14, AC15, AC16
-- **Files:** `src/components/MenuItemCard.jsx` (new); `src/components/TacoSuaveCard.jsx`
-  becomes a thin wrapper (or is replaced in usage). Reuse `formatPrice.js`.
-- **Depends on:** shared contract (design §3b)
-- **Done when:** renders loading / error+Retry / not-found / success; formats price
-  from `basePriceCents`; renders the required protein group as radios (starts
-  unselected, single-select, no blocking validation). **Double meat:** when the group
-  has a `doubleMeat` object, render one "Double meat (+$X.XX)" control bound to the
-  selected protein; disable it when the selected option's `doubleMeatAvailable` is
-  false; switching to such an option (grilled veggies) **clears** the double-meat
-  selection and its surcharge (FC2/FC3/FC4). Driven by the data fields, no hard-coded
-  ids. **Taco Suave's existing behavior is preserved** via the wrapper path.
-- **Manual step?** No.
+> **Agreed presentation and build plan: see `frontend-handoff.md` (same folder).**
+> It captures the compact-rows + expandable "Choose options" UX, the exactly-one /
+> double-meat / veggies-clears rules, and the authoritative-no-static-fallback rule,
+> mapped to F1–F5. **Implemented** this session (build/lint/tests + live HTTP wiring
+> verified); the **browser-interaction checks remain pending** (see
+> `server/VERIFICATION.md` → "Feature 2 — frontend").
 
-- [ ] **Task F2 — `useOriginalTacos` hook**
-Fetch the category list with the Feature 1 state machine.
+- [x] **Task F1 — Reusable `MenuItemCard` component**
+A component that renders any API-backed catalog item: compact row + expandable
+"Choose options".
+- **AC refs:** AC5, AC6, AC12, AC14, AC15, AC16
+- **Files:** `src/components/MenuItemCard.jsx` + `src/components/MenuItemCard.css`
+  (scoped); `src/utils/configurePrice.js` (pure selection/price helpers). The old
+  `TacoSuaveCard.jsx`/`.css` and `useTacoSuave.js` were removed (superseded).
+- **DONE (code + automated):** compact row (reuses `.menuRow`); accessible "Choose
+  options" button (`aria-expanded`/`aria-controls`), collapsed by default; native
+  labeled protein radios with a unique `name` per item, starts unselected,
+  single-select; selection persists across collapse (state above the render). Double
+  meat shown only when BOTH `group.doubleMeat` non-null AND selected option
+  `doubleMeatAvailable`; switching to veggies clears it; switching back to meat does
+  not auto-enable; driven by data, no hard-coded ids. Configured price = base + option
+  delta + eligible checked surcharge; base vs configured shown distinctly. Unit-tested
+  via `configurePrice.test.js`. Price presentation refined to labelled
+  "Base $5.25 / With options $6.75" (no strikethrough), wrapping on narrow screens.
+- **Browser verification DONE (user-performed, Safari):** collapsed/expansion;
+  initially-unselected + exactly-one; independent selections; selection preserved
+  across collapse/reopen; double-meat totals ($6.75 Suave/Bravo, $11.49 Supreme);
+  veggies clears + no auto-re-enable; Duro/Del Mar never offer double meat; Option+Tab
+  + Space keyboard; revised price labels visible/correct (screenshot). See
+  `server/VERIFICATION.md`.
+- **Manual step?** Browser check complete.
+
+- [x] **Task F2 — `useOriginalTacos` hook**
+Fetch the whole category as the single source (replaces the per-item Taco Suave fetch).
 - **AC refs:** AC2, AC5
 - **Files:** `src/utils/useOriginalTacos.js` (new) — `fetch('/api/menu/categories/
-  original-tacos')`, states `loading|success|error|notFound`, `retry`.
-- **Depends on:** shared contract
-- **Done when:** mirrors `useTacoSuave` semantics; a failed call never shows static
-  data as success.
+  original-tacos')`, states `loading|success|empty|error`, `retry`.
+- **DONE:** relative URL via the dev proxy; `success` only on 200 with a non-empty
+  `items[]`; `empty` on 200 `items: []`; `error` on network/non-2xx; a failed call
+  never surfaces as success. Live HTTP wiring confirmed (200 + five items in order).
 - **Manual step?** No.
 
-- [ ] **Task F3 — Generalize the menu overlay + stable ids**
-Overlay all fetched category items before filtering; add stable ids to the four
-entries.
+- [x] **Task F3 — Generalize the menu overlay + stable ids**
+Overlay all fetched category items before filtering; add stable ids to the four entries.
 - **AC refs:** AC6, AC7, AC8, AC17
-- **Files:** `src/utils/menuExplorer.js` — add `menuWithCategory(sections, data)`
-  generalizing `menuWithTacoSuave` (overlay by `id`; exclude not-yet-loaded items from
-  filtering/counting). `src/data/menu.js` — add `id: "taco-duro" | "taco-bravo" |
-  "taco-del-mar" | "taco-supreme"` to those four entries (additive). Keep/adjust
-  `src/utils/tacoSuaveMenu.test.js` (or add a sibling) for count agreement.
-- **Depends on:** F2
-- **Done when:** overlay matches `menu.js` entries to API items **by `id`** (never by
-  name); on success, displayed name/price and filter matches + result counts agree for
-  all five items; an item **omitted** from a successful response is treated as
-  unavailable and is **not** shown from static data; while an item is simply not yet
-  loaded it is excluded from filtering/counting but its card still renders in place;
-  local `image`/`popular`/category note are preserved as **frontend presentation
-  metadata** (not overwritten by the API, which does not carry them); existing
-  filter/routing tests still pass.
+- **Files:** `src/utils/menuExplorer.js` — `menuWithCategory(sections, cat,
+  categoryName)` (replaces `menuWithTacoSuave`). `src/data/menu.js` — added `id` to the
+  four entries (additive). Tests: `src/utils/originalTacosMenu.test.js`.
+- **DONE:** overlay matches by **`id`** (not name); on success, displayed name/price
+  and filter matches + counts agree; an **API-omitted item is dropped** (no static
+  fallback); non-success empties the category from filtering/counting; local
+  `image`/`popular`/note preserved; max-price uses the API **base** price. Existing
+  filter/routing tests still pass (17/17 total).
 - **Manual step?** No.
 
-- [ ] **Task F4 — In-place swap for the whole category**
-Render `MenuItemCard` for every Original Tacos item with a stable id, in order.
+- [x] **Task F4 — In-place swap for the whole category**
+Render `MenuItemCard` for every API-backed Original Tacos item, in order.
 - **AC refs:** AC5, AC6, AC12, AC13
-- **Files:** `src/components/MenuSection.jsx`, `src/App.jsx` — generalize the Feature 1
-  swap/pending-notice from the single Taco Suave row to all Original Tacos items.
-- **Depends on:** F1, F3
-- **Done when:** each Original Tacos item appears exactly once, in its original slot
-  and order, sourced from the API (matched by stable `id`); all other categories render
-  unchanged; app builds and lints; routing/filter tests pass.
-- **Manual step?** No.
+- **Files:** `src/components/MenuSection.jsx` (renders `MenuItemCard` for items with an
+  `apiItem`, else `MenuItem`); `src/App.jsx` (MenuPage uses `useOriginalTacos` +
+  `menuWithCategory`; category-level loading/error+Retry/empty notice in the Original
+  Tacos slot; other categories untouched).
+- **DONE (code + automated + HTTP wiring):** each item appears once, in API order;
+  other categories unchanged; build/lint clean; routing/filter tests pass.
+- **Browser verification DONE (user-performed, Safari):** five items render in place
+  in order (success); category **loading → success**, **empty** notice (no static
+  replacement), and **error → Retry → success** all observed via the dev override;
+  narrow desktop-window layout (not a physical phone). See `server/VERIFICATION.md`.
+- **Manual step?** Browser check complete.
 
-- [ ] **Task F5 — Focused checks for the confirmed rules (FC1–FC5)**
+- [x] **Task F5 — Focused checks for the confirmed rules (FC1–FC5)**
 Add automated and/or user-performed checks for the confirmed protein + double-meat
 rules, using the existing `node --test` runner (no new framework).
 - **AC refs:** AC12, AC13, AC14, AC15, AC16
@@ -248,17 +264,23 @@ rules, using the existing `node --test` runner (no new framework).
   veggies clears + disables double meat; Del Mar seafood $0). Component-level keyboard/
   visual behavior is a user-performed browser check (recorded later), as in Feature 1.
 - **Depends on:** F1, F3
-- **Done when:** FC1 (exactly-one), FC2 (same-protein double meat), FC3 (each surcharge
-  150/150/299, none for Duro/Del Mar), FC4 (veggies clears/disables double meat), and
-  FC5 (Del Mar seafood $0 on 675) each have a concrete passing check or a recorded
-  user-performed observation; the distinction (automated vs user-performed) is labeled.
-- **Manual step?** Partially 🔧 (keyboard/visual portion is user-performed).
+- **Automated half DONE:** `src/utils/configurePrice.test.js` covers FC1 (exactly-one
+  via single-select + the offered/clear rules), FC2 (double meat keeps the same
+  protein — it is a flag on the selected option, never a second protein), FC3 (each
+  surcharge 150/150/299; none for Duro/Del Mar), FC4 (veggies clears + double meat not
+  offered), FC5 (Del Mar seafood $0, no surcharge). The `MenuItemCard` component uses
+  these exact helpers (not a re-implementation). Pure-logic tests, **not** a rendered-
+  component/browser test.
+- **Browser half DONE (user-performed, Safari):** keyboard operation (Option+Tab +
+  Space), visible selection, independent selections across tacos, and the rendered
+  surcharge/veggie-clear behavior all observed; recorded in `server/VERIFICATION.md`.
+- **Manual step?** 🔧 Browser portion complete (user-performed Safari, not automated).
 
 ---
 
 ## Track V — Verification (after B+F integrate; mostly a later turn)
 
-- [ ] **Task V1 — End-to-end category proof (design §7)**
+- [x] **Task V1 — End-to-end category proof (design §7)**
 List endpoint returns all qualifying items in order; an omitted item is absent from the
 200 list and not shown from static data; a dev DB value change reaches the list and the
 rendered card (guarded, committed, reverted with row counts — Feature 1 F1 style);
@@ -267,10 +289,26 @@ filters/counts agree; runtime role still read-only; frontend build/lint/tests pa
 Record in a
 `server/VERIFICATION.md` section (or a feature-scoped verification doc), labeling
 automated vs user-performed checks. 🔧 for the dev-DB edits.
+- **Backend half DONE (user-executed, shared Supabase, screenshots):** live category
+  endpoint returned all five items in order with the correct extended JSON; post-
+  migration SQL confirmed prices/limits/surcharges/option counts;
+  `verify_d1_connection.mjs` passed over verified TLS.
+- **Frontend half DONE:** the rendered cards, filters/counts agreement, and category
+  loading/empty/error→Retry states were user-verified in Safari; frontend
+  build/lint/tests pass (17/17). A dev-DB value-change proof was already recorded under
+  Feature 1's F1 (the mechanism is unchanged); not re-run for every item here.
 
-- [ ] **Task V2 — Secret-leak & read-only reconfirmation**
+- [x] **Task V2 — Secret-leak & read-only reconfirmation**
 Bundle/source scan clean; runtime role write still rejected (reuse Feature 1 probes;
-re-run only parts affected by new rows/columns). 🔧 partially.
+re-run only parts affected by new rows/columns).
+- **Secret-leak DONE:** fresh-build scan of `src/` + `dist/` is CLEAN (no connection
+  string, `DATABASE_URL`, Supabase host, service_role/anon JWT, PEM key, `DB_CA_CERT`,
+  or `wana_menu_app`); frontend holds only the relative `/api` URL. See
+  `server/VERIFICATION.md` → "Frontend secret-leak scan".
+- **Read-only DONE:** `verify_d1_connection.mjs` confirmed the login **identity**
+  (`current_user = wana_menu_app`); the **read-only** property is established by the
+  prior C2 privilege/write-rejection probes (anon + runtime write denied, ledger
+  denied) on the 0001–0007 schema.
 
 ---
 
