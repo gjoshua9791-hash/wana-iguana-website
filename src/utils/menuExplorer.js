@@ -1,41 +1,59 @@
 import { formatCents } from './formatPrice.js'
 
 /**
- * Return a copy of the menu with the API-backed Taco Suave reconciled into the
- * static data BEFORE search/price filtering runs, so displayed values, filter
- * matches, and the result count all agree (integration requirement).
+ * Reconcile a database-backed CATEGORY into the static menu BEFORE search/price
+ * filtering, so displayed values, filter matches, and counts all agree.
  *
- * - On success: overlay the API-supplied name, description, and price (formatted
- *   from integer cents) onto the `taco-suave` entry, while preserving local
- *   presentation metadata (image, popular, category). The entry then filters by
- *   the same values the TacoSuaveCard displays.
- * - On any non-success status (loading/error/notFound): drop the Taco Suave entry
- *   from the filterable data so stale static values never match a search/price
- *   filter or inflate the result count. The card still renders its own state in
- *   place via the render loop; it simply is not a "matching item" yet.
+ * `cat` is the fetch state from useOriginalTacos: `{ status, items }`.
+ * `categoryName` is the static section name to reconcile (e.g. "Original Tacos").
  *
- * `taco` is the fetch state from useTacoSuave: `{ status, data }`.
+ * On success: the named section's items become the API items, in API order
+ * (authoritative), matched to the static entry by stable `id` to carry local
+ * presentation metadata (image, popular) and keep the category `note`. Each
+ * reconciled entry also carries:
+ *   - `name`/`description` from the API,
+ *   - `price` as a formatted string derived from the API `basePriceCents` (this is
+ *     the BASE price; the filter layer and max-price filter use this, not any
+ *     configured double-meat total),
+ *   - `apiItem`: the full API item object (modifier groups/options), for the card.
+ * A static entry whose `id` is NOT in the API response is DROPPED (authoritative
+ * omission — no static fallback for an item the API did not return). Static entries
+ * never add items the API omitted.
+ *
+ * On any non-success status (loading/empty/error): the named section's items are
+ * emptied so stale static values never match a filter or inflate counts; the page
+ * renders a category-level loading/empty/error notice in that section's place.
+ * Every OTHER category is returned unchanged.
  */
-export function menuWithTacoSuave(sections, taco) {
-  const status = taco?.status
-  const data = taco?.data
-  return sections.map(section => ({
-    ...section,
-    items: section.items.flatMap(item => {
-      if (item.id !== 'taco-suave') return [item]
-      if (status === 'success' && data) {
-        const price = formatCents(data.basePriceCents)
-        return [{
-          ...item,
-          name: data.name ?? item.name,
-          description: data.description ?? item.description,
-          ...(price ? { price } : {}),
-        }]
+export function menuWithCategory(sections, cat, categoryName) {
+  const status = cat?.status
+  const apiItems = Array.isArray(cat?.items) ? cat.items : []
+
+  return sections.map(section => {
+    if (section.category !== categoryName) return section
+    if (status !== 'success') {
+      // loading / empty / error: no filterable items for this category.
+      return { ...section, items: [] }
+    }
+    const staticById = new Map(
+      section.items.filter(it => it.id).map(it => [it.id, it]),
+    )
+    // API order is authoritative. Each API item carries local metadata (by id)
+    // plus a base-price string for the filter layer and the full apiItem.
+    const items = apiItems.map(apiItem => {
+      const local = staticById.get(apiItem.id) ?? {}
+      const price = formatCents(apiItem.basePriceCents)
+      return {
+        ...local, // image, popular, any other local presentation metadata
+        id: apiItem.id,
+        name: apiItem.name ?? local.name,
+        description: apiItem.description ?? local.description,
+        ...(price ? { price } : {}),
+        apiItem,
       }
-      // Not yet successfully loaded: exclude from filtering/counting.
-      return []
-    }),
-  }))
+    })
+    return { ...section, items }
+  })
 }
 
 export function filterMenuItems(sections, { search = '', category = 'all', maxPrice = 'any', popularOnly = false }) {

@@ -4,18 +4,59 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import MenuItem from './components/MenuItem'
 import MenuSection from './components/MenuSection'
-import { filterMenuItems, menuWithTacoSuave } from './utils/menuExplorer'
+import { filterMenuItems, menuWithCategory } from './utils/menuExplorer'
 import { parseRoute } from './utils/routes'
 import { menu } from './data/menu'
-import { useTacoSuave } from './utils/useTacoSuave'
+import { useOriginalTacos } from './utils/useOriginalTacos'
+import { categoryId } from './utils/categoryId'
+
+const ORIGINAL_TACOS = 'Original Tacos'
 
 const specials = menu.find(section => section.category === 'Wana Specials')
+
+const originalTacosNote = menu.find(section => section.category === ORIGINAL_TACOS)?.note
+
+/**
+ * Category-level notice for the API-backed Original Tacos category when it has not
+ * successfully loaded: loading, error + Retry, or a (valid) empty category. Rendered
+ * in the Original Tacos slot by the Menu page so the rest of the menu stays usable.
+ * We never show stale static tacos as a substitute for a failed/pending request.
+ */
+function OriginalTacosNotice({ status, onRetry }) {
+  const id = categoryId(ORIGINAL_TACOS)
+  return (
+    <section className="menuCategory" id={id} aria-labelledby={`${id}-title`} tabIndex={-1}>
+      <div className="menuCategoryHeader">
+        <div><h3 id={`${id}-title`}>{ORIGINAL_TACOS}</h3>{originalTacosNote && <p>{originalTacosNote}</p>}</div>
+      </div>
+      <div className="menuRows">
+        {status === 'loading' && (
+          <div className="categoryNotice" role="status" aria-busy="true">
+            <p>Loading Original Tacos…</p>
+          </div>
+        )}
+        {status === 'error' && (
+          <div className="categoryNotice" role="alert">
+            <p className="categoryNoticeTitle">We couldn’t load Original Tacos.</p>
+            <p>Please check your connection and try again. The rest of the menu is still available.</p>
+            <button type="button" className="categoryRetry" onClick={onRetry}>Retry</button>
+          </div>
+        )}
+        {status === 'empty' && (
+          <div className="categoryNotice">
+            <p className="categoryNoticeTitle">No Original Tacos are available right now.</p>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
 
 function HomePage() {
   return <>
     <section className="hero" aria-labelledby="home-title">
       <div className="heroContent">
-        <p className="eyebrow">Beach mural spirit · Valencia, CA</p>
+        <p className="eyebrow">Valencia, CA</p>
         <h1 id="home-title">Wana Iguana<br /><em>Fresh Mexican Grill.</em></h1>
         <div className="heroAbout" aria-labelledby="about-title">
           <p className="eyebrow">Get to know us</p>
@@ -25,7 +66,7 @@ function HomePage() {
       </div>
       <img className="heroPhoto" src="/images/taco-suave.jpeg" alt="Taco Suave from Wana Iguana" />
     </section>
-    <div className="introStrip"><span>Fresh Mexican grill</span><span aria-hidden="true">✦</span><span>Valencia, California</span><span aria-hidden="true">✦</span><span>A little sunshine in every visit</span></div>
+    <div className="introStrip"><span>Fresh Mexican Grill</span><span aria-hidden="true">✦</span><span>Valencia, California</span><span aria-hidden="true">✦</span><span>A little sunshine in every visit</span></div>
     <section className="homeOrders" aria-labelledby="past-orders-title">
       <div>
         <p className="eyebrow">Your favorites, one tap away</p>
@@ -40,9 +81,9 @@ function HomePage() {
       </div>
     </section>
     <section className="specialsSection" aria-labelledby="specials-title">
-      <p className="eyebrow">Something extra</p>
+      <p className="eyebrow">Something Different To Try</p>
       <h2 id="specials-title">Wana Specials</h2>
-      <p>These items are from the Wana Specials menu category. Call the restaurant about today’s specials, prices and availability.</p>
+      <p>These items are from the Wana Specials. Call the restaurant about today’s specials, prices and availability.</p>
       <div className="menuCategory homeSpecialsBoard">
         <div className="menuRows">
           {specials.items.map(item => <MenuItem key={item.name} item={item} />)}
@@ -57,31 +98,31 @@ function MenuPage() {
   const [category, setCategory] = useState('all')
   const [maxPrice, setMaxPrice] = useState('any')
   const [popularOnly, setPopularOnly] = useState(false)
-  // Live, database-backed Taco Suave. Owned here so the SAME fetched data feeds
-  // both filtering/counting and the in-place TacoSuaveCard (no divergence).
-  const taco = useTacoSuave()
+  // Single source for the whole Original Tacos category. Its data feeds both the
+  // reconcile-before-filter step and the in-place cards (no divergence).
+  const tacos = useOriginalTacos()
 
   const filtersActive = Boolean(search.trim()) || category !== 'all' || maxPrice !== 'any' || popularOnly
-  // Reconcile the API values into the static menu before filtering so displayed
+  // Reconcile the API category into the static menu before filtering so displayed
   // name/price and filter matches/counts agree (on success); on any other status
-  // the Taco Suave entry is excluded from filtering so stale static data never
-  // matches or inflates the count.
-  const reconciledMenu = menuWithTacoSuave(menu, taco)
+  // the Original Tacos items are excluded from filtering so stale static tacos
+  // never match or inflate the count. Other categories pass through unchanged.
+  const reconciledMenu = menuWithCategory(menu, tacos, ORIGINAL_TACOS)
   const filteredMenu = filterMenuItems(reconciledMenu, { search, category, maxPrice, popularOnly })
   const resultCount = filteredMenu.reduce((total, section) => total + section.items.length, 0)
 
-  // When Taco Suave hasn't successfully loaded, it is not a filter "match" (its
-  // real name/price are unknown), so it is absent from `filteredMenu`. We still
-  // render its card in its Original Tacos slot — but only when no text/price
-  // filter is active and the category is Original Tacos or All, so a filtered
-  // view stays honest. On success the card renders as the matched row instead.
-  const tacoPending = taco.status !== 'success'
-  const tacoCategoryVisible = category === 'all' || category === 'Original Tacos'
-  const tacoTextPriceFilterActive = Boolean(search.trim()) || maxPrice !== 'any'
-  // "Popular" filter: the loading/error/notFound card has no confirmed popular
-  // flag from the API, but Original Tacos' Taco Suave is locally marked popular,
-  // so it may still appear under a popular-only filter while pending.
-  const showPendingTacoCard = tacoPending && tacoCategoryVisible && !tacoTextPriceFilterActive
+  // When the category has not successfully loaded, its items are absent from
+  // `filteredMenu`. We render a category-level notice (loading / error+Retry /
+  // empty) in the Original Tacos slot whenever that category is in view — i.e. the
+  // category selection is All or Original Tacos — REGARDLESS of search, maximum
+  // price, or popular-only filters. The notice reports category availability, not a
+  // filter match, so an active search/price/popular filter must NOT hide it (that
+  // would hide Retry during a failure). The unloaded/unavailable tacos stay excluded
+  // from the matching results (no static fallback); the notice is separate from the
+  // matching-item count. When another category is selected, the notice is hidden.
+  const tacosPending = tacos.status !== 'success'
+  const tacosCategoryVisible = category === 'all' || category === ORIGINAL_TACOS
+  const showTacosNotice = tacosPending && tacosCategoryVisible
 
   function clearFilters() {
     setSearch('')
@@ -136,12 +177,9 @@ function MenuPage() {
           ? `${resultCount} matching ${resultCount === 1 ? 'item' : 'items'}`
           : 'All menu categories'}
       </p>
-      {filteredMenu.length ? <div className="menuList">
-        {filteredMenu.map(section => <MenuSection
-          key={section.category}
-          section={section}
-          taco={taco}
-          showPendingTacoCard={showPendingTacoCard} />)}
+      {(filteredMenu.length || showTacosNotice) ? <div className="menuList">
+        {showTacosNotice && <OriginalTacosNotice status={tacos.status} onRetry={tacos.retry} />}
+        {filteredMenu.map(section => <MenuSection key={section.category} section={section} />)}
       </div> : <p className="emptyMessage">No dishes match these filters. Try changing your search, price, or category, or clear the filters.</p>}
     </section>
   </div>

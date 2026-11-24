@@ -1,40 +1,25 @@
 import MenuItem from './MenuItem'
-import TacoSuaveCard from './TacoSuaveCard'
+import MenuItemCard from './MenuItemCard'
 import { categoryId } from '../utils/categoryId'
 
 /**
  * Render one menu category.
  *
- * Taco Suave is special: wherever the `taco-suave` entry appears in this
- * section's items, it is rendered by the API-backed <TacoSuaveCard/> instead of
- * the static <MenuItem/> (in-place swap, no double display — AC16). When Taco
- * Suave has not yet loaded successfully it is absent from the filtered items;
- * in that case, if the parent asks (`showPendingTacoCard`) and this is the
- * Original Tacos category, we re-insert the card at the top (its original slot)
- * so its loading/error/not-found state is visible in place. That injected card
- * is a NOTICE, not a counted menu item: the header count and the top-level
- * "N matching items" both tally only loaded items, so they never disagree.
+ * An item reconciled from the API carries an `apiItem` payload (see
+ * `menuWithCategory`); such items render through the API-backed <MenuItemCard/>
+ * (compact row + expandable options). Plain static items render through
+ * <MenuItem/> unchanged. The header count reflects only the items actually in
+ * `section.items` (the reconcile layer already dropped API-omitted and
+ * not-yet-loaded items), so the count matches what is rendered and agrees with
+ * the page's "N matching items" total.
  *
- * `taco` is the fetch state from useTacoSuave ({ status, data, retry }).
+ * Category-level loading / error / empty states for an API-backed category are
+ * handled by the Menu page (they mean the section has no filterable items), not
+ * here.
  */
-export default function MenuSection({ section, taco, showPendingTacoCard = false }) {
+export default function MenuSection({ section }) {
   const id = categoryId(section.category)
-
-  const hasTaco = Boolean(taco) && section.items.some(item => item.id === 'taco-suave')
-  const injectPendingTaco =
-    Boolean(taco) && showPendingTacoCard && section.category === 'Original Tacos' && !hasTaco
-
-  // The header count reflects only loaded/available items. A pending Taco Suave
-  // card (loading / error / not-found) is a NOTICE, not an available item, so it
-  // is NOT counted here — this keeps the per-section count equal to the sum the
-  // top-level "N matching items" uses (both count only `section.items`), so the
-  // two can never report contradictory totals.
   const itemCount = section.items.length
-
-  // The local static entry (for image/popular presentation metadata the API
-  // does not supply). Falls back to a minimal shape when it was filtered out.
-  const staticTaco = section.items.find(item => item.id === 'taco-suave') ??
-    { image: '/images/taco-suave.jpeg', popular: true }
 
   return <section className="menuCategory" id={id} aria-labelledby={`${id}-title`} tabIndex={-1}>
     <div className="menuCategoryHeader">
@@ -42,20 +27,9 @@ export default function MenuSection({ section, taco, showPendingTacoCard = false
       <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
     </div>
     <div className="menuRows">
-      {injectPendingTaco && <TacoSuaveCard
-        key="taco-suave"
-        status={taco.status}
-        data={taco.data}
-        onRetry={taco.retry}
-        fallbackItem={staticTaco} />}
       {section.items.map(item => (
-        item.id === 'taco-suave' && taco
-          ? <TacoSuaveCard
-              key="taco-suave"
-              status={taco.status}
-              data={taco.data}
-              onRetry={taco.retry}
-              fallbackItem={item} />
+        item.apiItem
+          ? <MenuItemCard key={item.id} item={item} />
           : <MenuItem key={item.name} item={item} />
       ))}
     </div>

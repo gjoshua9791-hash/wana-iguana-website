@@ -13,8 +13,9 @@ const base = {
   variant_id: 'taco-suave-base', base_price_cents: 525,
 }
 const row = (o) => ({ ...base, group_id: null, label: null, min_select: null,
-  max_select: null, group_sort: null, option_id: null, option_name: null,
-  price_delta_cents: null, option_sort: null, ...o })
+  max_select: null, group_sort: null, double_meat_price_delta_cents: null,
+  option_id: null, option_name: null, price_delta_cents: null, option_sort: null,
+  double_meat_available: null, ...o })
 
 // 1. Zero rows -> null (route maps to 404)
 t('zero rows -> null', () => { assert.strictEqual(mapRowsToItem([]), null) })
@@ -78,6 +79,30 @@ t('duplicate option rows de-duplicated', () => {
 // 7. null description preserved as null (not coerced)
 t('null description preserved', () => {
   assert.strictEqual(mapRowsToItem([row({ description: null })]).description, null)
+})
+
+// 8. Feature 2: double-meat fields emitted (group doubleMeat + option availability)
+t('double-meat: group.doubleMeat non-null, per-option availability', () => {
+  const rows = [
+    row({ group_id: 'protein', label: 'Choose one', min_select: 1, max_select: 1, group_sort: 1, double_meat_price_delta_cents: 150, option_id: 'steak',           option_name: 'Steak',           price_delta_cents: 0, option_sort: 1, double_meat_available: true  }),
+    row({ group_id: 'protein', label: 'Choose one', min_select: 1, max_select: 1, group_sort: 1, double_meat_price_delta_cents: 150, option_id: 'grilled-veggies', option_name: 'Grilled Veggies', price_delta_cents: 0, option_sort: 5, double_meat_available: false }),
+  ]
+  const g = mapRowsToItem(rows).modifierGroups[0]
+  assert.deepStrictEqual(g.doubleMeat, { priceDeltaCents: 150 }, 'group doubleMeat from link')
+  const steak = g.options.find(o => o.id === 'steak')
+  const veg   = g.options.find(o => o.id === 'grilled-veggies')
+  assert.strictEqual(steak.doubleMeatAvailable, true,  'meat is doubleable')
+  assert.strictEqual(veg.doubleMeatAvailable,   false, 'veggies not doubleable')
+})
+
+// 9. Feature 2: no double meat -> group.doubleMeat is null (Duro/Del Mar shape)
+t('double-meat: null link -> doubleMeat null', () => {
+  const rows = [
+    row({ group_id: 'protein-seafood', label: 'Choose one', min_select: 1, max_select: 1, group_sort: 1, double_meat_price_delta_cents: null, option_id: 'grilled-fish', option_name: 'Grilled Fish', price_delta_cents: 0, option_sort: 1, double_meat_available: false }),
+  ]
+  const g = mapRowsToItem(rows).modifierGroups[0]
+  assert.strictEqual(g.doubleMeat, null, 'no double meat offered -> null')
+  assert.strictEqual(g.options[0].doubleMeatAvailable, false)
 })
 
 console.log(`\nSUMMARY ${pass} passed, ${fail} failed`)

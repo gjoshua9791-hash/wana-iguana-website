@@ -116,11 +116,13 @@ rm -rf "$TMPMIG"
 echo
 
 echo "=== dry-run on a FRESH db creates nothing (read-only) ==="
+# Invariant: dry-run is read-only (no ledger created) and shows EVERY migration in
+# the runner's fixed order as pending. That order is now 0001-0007 (7 files).
 out="$(DB_URL="$URL_DRY" PSQL="$PSQL" "$MIGDIR/run_migrations.sh" --dry-run 2>&1)"; rc=$?
 ledger_present="$("$PSQL" -X "$URL_DRY" -At -c "select to_regclass('public.schema_migrations') is not null")"
 applies="$(printf '%s' "$out" | grep -c 'APPLY:')"
-if [ "$rc" -eq 0 ] && [ "$ledger_present" = "f" ] && [ "$applies" = "4" ]; then
-  pass "dry-run fresh: exit 0, no ledger created, all 4 shown pending"
+if [ "$rc" -eq 0 ] && [ "$ledger_present" = "f" ] && [ "$applies" = "7" ]; then
+  pass "dry-run fresh: exit 0, no ledger created, all 7 shown pending"
 else
   fail "dry-run fresh: rc=$rc ledger_present=$ledger_present applies=$applies"
 fi
@@ -132,29 +134,34 @@ printf '%s\n' "$runlog" | sed 's/^/  /'
 [ "$rc" -eq 0 ] && pass "runner exit 0" || { fail "runner exit $rc"; }
 # menu_backend was created by 0003 during this run -> track for cleanup
 if role_exists menu_backend; then MENU_BACKEND_CREATED=1; fi
+# The runner's fixed order is now 0001-0007 (Feature 2 added 0005-0007). C2's
+# invariant is "the runner applies its full documented order, in order, and is
+# idempotent" — so assert the full seven-migration ledger rather than the old four.
 ledger="$("$PSQL" -X "$URL" -At -c "select string_agg(filename,',' order by filename) from public.schema_migrations")"
-[ "$ledger" = "0001_create_catalog.sql,0002_one_active_default.sql,0003_access_policies.sql,0004_seed_taco_suave.sql" ] \
-  && pass "ledger lists all four in order" || fail "ledger unexpected: $ledger"
+exp_ledger="0001_create_catalog.sql,0002_one_active_default.sql,0003_access_policies.sql,0004_seed_taco_suave.sql,0005_menu_item_category.sql,0006_double_meat_columns.sql,0007_seed_original_tacos.sql"
+[ "$ledger" = "$exp_ledger" ] \
+  && pass "ledger lists all seven in order" || fail "ledger unexpected: $ledger"
+LEDGER_N=7
 echo
 
-echo "=== dry-run on the MIGRATED db changes nothing, shows 4 SKIP ==="
+echo "=== dry-run on the MIGRATED db changes nothing, shows all recorded as SKIP ==="
 before="$("$PSQL" -X "$URL" -At -c "select md5(string_agg(filename,',' order by filename)) from public.schema_migrations")"
 out="$(DB_URL="$URL" PSQL="$PSQL" "$MIGDIR/run_migrations.sh" --dry-run 2>&1)"; rc=$?
 after="$("$PSQL" -X "$URL" -At -c "select md5(string_agg(filename,',' order by filename)) from public.schema_migrations")"
 skips="$(printf '%s' "$out" | grep -c 'SKIP (recorded)')"
-if [ "$rc" -eq 0 ] && [ "$before" = "$after" ] && [ "$skips" = "4" ]; then
-  pass "dry-run migrated: exit 0, ledger unchanged, 4 SKIP"
+if [ "$rc" -eq 0 ] && [ "$before" = "$after" ] && [ "$skips" = "$LEDGER_N" ]; then
+  pass "dry-run migrated: exit 0, ledger unchanged, $LEDGER_N SKIP"
 else
   fail "dry-run migrated: rc=$rc skips=$skips changed=$([ "$before" = "$after" ] && echo no || echo yes)"
 fi
 echo
 
-echo "=== second REAL run is idempotent: exit 0 AND four SKIP results ==="
+echo "=== second REAL run is idempotent: exit 0 AND all recorded as SKIP ==="
 out2="$(DB_URL="$URL" PSQL="$PSQL" "$MIGDIR/run_migrations.sh" 2>&1)"; rc2=$?
 skips2="$(printf '%s' "$out2" | grep -c 'SKIP (recorded)')"
 applies2="$(printf '%s' "$out2" | grep -c 'APPLY:')"
-if [ "$rc2" -eq 0 ] && [ "$skips2" = "4" ] && [ "$applies2" = "0" ]; then
-  pass "second run: exit 0, 4 SKIP, 0 APPLY"
+if [ "$rc2" -eq 0 ] && [ "$skips2" = "$LEDGER_N" ] && [ "$applies2" = "0" ]; then
+  pass "second run: exit 0, $LEDGER_N SKIP, 0 APPLY"
 else
   fail "second run: rc=$rc2 skips=$skips2 applies=$applies2"
 fi
@@ -186,22 +193,26 @@ SQL
   || { fail "SET ROLE did not take effect (got '$whoami')"; }
 
 echo "=== runtime READ works across ALL FIVE catalog tables ==="
-# bash 3.2 (macOS) has no associative arrays; use a portable "table:expected" list.
-for pair in menu_item:1 item_variant:1 modifier_group:1 modifier_option:2 variant_modifier_group:1; do
-  t="${pair%%:*}"; want="${pair##*:}"
+# The runner now applies 0001-0007, so exact row counts grow with the catalog.
+# C2's invariant is that the runtime role can READ every catalog table (not a
+# specific count), so we assert each read SUCCEEDS and returns at least one row.
+# bash 3.2 (macOS) has no associative arrays; use a portable list.
+for t in menu_item item_variant modifier_group modifier_option variant_modifier_group; do
   v="$("$PSQL" -X "$URL" -At -v ON_ERROR_STOP=1 -v u="$LOGIN_USER" 2>/dev/null <<SQL | tail -1
 SET ROLE :"u";
 SELECT count(*) FROM public.$t;
 SQL
 )"
-  [ "$v" = "$want" ] && pass "runtime SELECT public.$t -> $v row(s)" || fail "runtime SELECT public.$t got '$v' (want $want)"
+  { [ -n "$v" ] && [ "$v" -ge 1 ] 2>/dev/null; } && pass "runtime SELECT public.$t -> $v row(s) (read succeeds)" || fail "runtime SELECT public.$t got '$v' (want >=1)"
 done
+# Taco Suave's default variant price is stable at 525 across Feature 1/2; target it
+# by id since there are now multiple active-default variants in the catalog.
 price="$("$PSQL" -X "$URL" -At -v ON_ERROR_STOP=1 -v u="$LOGIN_USER" 2>/dev/null <<SQL | tail -1
 SET ROLE :"u";
-SELECT base_price_cents FROM public.item_variant WHERE is_default AND is_active;
+SELECT base_price_cents FROM public.item_variant WHERE id='taco-suave-base' AND is_default AND is_active;
 SQL
 )"
-[ "$price" = "525" ] && pass "runtime default-variant price=525" || fail "runtime price='$price'"
+[ "$price" = "525" ] && pass "runtime read of taco-suave default-variant price=525" || fail "runtime price='$price'"
 
 echo "=== runtime WRITES denied with expected SQLSTATE + object-specific error ==="
 for w in \

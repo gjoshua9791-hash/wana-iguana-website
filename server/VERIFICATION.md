@@ -219,8 +219,9 @@ executed anon-role rejection (SQLSTATE 42501). ✅
 
 ## Notes
 
-- No commit, push, or deploy performed in this documentation pass. No cart/ordering/
-  Clover work.
+- **At the time of the Feature 1 (Phase E/F) verification session,** no commit, push,
+  or deploy had been performed in that documentation pass (the work was committed and
+  pushed later, in its own checkpoint step). No cart/ordering/Clover work.
 - **F1 DB edits** against the dev Supabase database were temporary and each reverted
   by a committed restore/cleanup (see Phase F1); no schema or migrations were touched.
 
@@ -291,3 +292,325 @@ and the deterministic-variant half of **AC4** (F1.2), the no-merging half of **A
 plus **AC3** (F1.3). Each mutation was committed, observed, and reverted by a committed
 restore/cleanup with matching row counts; the shared catalog is back to its original
 state. **Task F1: complete.**
+
+
+---
+
+# Feature 2 — Original Tacos category: backend verification
+
+Branch `feature/original-tacos-catalog`. Backend only. **During the verification
+session this record describes, no shared Supabase access occurred and nothing was
+committed or pushed** (the backend was committed and pushed afterward in its own
+checkpoint; these focused corrections are a later commit again). Verified TLS in
+`db.ts` is unchanged (`rejectUnauthorized: true`). All DB-backed checks ran against
+**uniquely named, disposable local databases** that are dropped on exit; the cluster
+role `menu_backend` is only touched when a run created it. No shared or retained test
+database was used.
+
+## What each check actually exercises (do not conflate)
+- **Pure unit (no DB, no HTTP):** `verify_d2_mapper.mjs` — the mapper over synthetic rows.
+- **Injected HTTP tests (real Express over local TCP, NO DB, NO TLS):**
+  `verify_f2_http.mjs` — boots the actual mounted category route with **injected**
+  query functions (a dependency seam on `createCategoryRouter`). The production pool
+  and its verified TLS are never involved. **These are NOT a live Supabase connection
+  test and NOT a DB integration test.**
+- **Isolated-DB integration (real local PostgreSQL, disposable):**
+  `migrations/verify_f2_category.sh`, `migrations/verify_f2_upgrade.sh`,
+  `migrations/verify_d4_endpoint.sh`, `migrations/verify_c2_local.sh` — apply real
+  migrations via the real runner into throwaway DBs and assert on real SQL results.
+- **NOT run this turn (would touch shared Supabase):** `verify_d1_connection.mjs`
+  (connects to the real `DATABASE_URL`). See the rollout note about its post-rollout
+  assertion update.
+
+## Results (actual)
+- `npm run build`: clean. `npm run lint`: clean (0 problems).
+- `verify_d2_mapper.mjs`: **9/9** (incl. the two double-meat cases).
+- `verify_f2_http.mjs`: **9/9** — Original Tacos success + exact extended shape
+  (`doubleMeat` + per-option `doubleMeatAvailable`); empty category → 200 `items:[]`;
+  unknown category → 200 `items:[]` (spec: not 404 this feature); unavailable-item
+  (no active default variant) omitted; query failure → **500 `{"error":"internal_error"}`**
+  (generic body; server log sanitized); `/health` → 200 `{"ok":true}` on the real app
+  (DB-independent, proven by importing `createApp` without the module binding a port).
+- `verify_f2_category.sh` (isolated DB): **ALL PASSED** — ordering `(sort_order,id)`;
+  confirmed prices 525/525/525/850/675; grouping (`protein`=5, `protein-duro`=2,
+  `protein-seafood`=2, all `min/max 1/1`); all protein deltas $0; double-meat link
+  deltas (Suave/Bravo 150, Supreme 299, Duro/Del-Mar NULL); per-option availability
+  (meats TRUE; veggies/seafood FALSE); authoritative omission at the route-equivalent
+  layer.
+- `verify_f2_upgrade.sh` (isolated DB): **ALL PASSED** — apply 0001–0004 first, then
+  the **real runner** SKIPs those 4 and APPLYs only 0005/0006/0007; ledger = 0001..0007;
+  Taco Suave data preserved (name/525/default/active); options expanded to five
+  (steak/chicken preserved first); Suave double-meat 150 added; all five tacos present;
+  runtime role read-only (SELECT ok incl. the new `category` column, writes denied,
+  executed write rejected); a second runner run applies nothing.
+- `verify_d4_endpoint.sh` (isolated DB): **ALL PASSED** (Feature-1 invariants hold on
+  the 0001–0007 schema: index rejection, missing-default → 0 rows, happy path).
+- `verify_c2_local.sh` (isolated DB): **ALL PASSED** (access control + runner
+  idempotency on the full 0001–0007 order).
+
+## Part 3 — stale assertions corrected (invariants preserved)
+The intentional Taco Suave expansion (2 → 5 options, +150 double meat) invalidated some
+hard-coded Feature-1 expectations in scripts that now provision 0001–0007:
+- `verify_d4_endpoint.sh`: happy-path option assertion updated from `steak,chicken` to
+  the five-option set; the exactly-one / 525 / index / 404 invariants are unchanged.
+- `verify_c2_local.sh`: ledger/skip/apply counts updated from 4 to 7; the per-table
+  read assertions relaxed from exact counts to "read succeeds (≥1 row)"; the
+  default-variant price read now targets `taco-suave-base` by id (multiple active
+  defaults now exist). All access-control invariants (SELECT works, writes/ledger/
+  PUBLIC denied, anon/authenticated REVOKE) are unchanged.
+- `verify_d2_mapper.mjs`: `row()` helper gained the two new columns; two cases added;
+  existing cases unchanged.
+- **Unchanged on purpose:** `verify_b1_b2.sh` and `verify_b3_seed.sh` apply only their
+  own Feature-1 files (not the runner), so their 0004-scoped assertions remain valid.
+  `verify_d3_timeout.mjs` / `verify_e_states.mjs` use local stubs (no catalog shape).
+
+## Part 4 — example category JSON: provenance
+The example category JSON shown in the previous turn's report was **generated by the
+real `mapRowsToItem` over synthetic rows** (a small Node script feeding
+representative rows into the compiled mapper). It was **not captured from an HTTP
+response** and is **not** from a live Supabase query. The injected HTTP test
+(`verify_f2_http.mjs`) separately confirms the route emits that same shape over real
+HTTP with injected data.
+
+## Part 5 — rollout dependency and order (for later review; NOT executed here)
+**The updated backend REQUIRES migrations 0005–0007. Do NOT run the new backend code
+against the old (pre-0005) schema** — `queryCategoryItemIds` reads `menu_item.category`,
+the category route and mapper read `double_meat_available` /
+`double_meat_price_delta_cents`; those columns do not exist until 0005/0006, so the
+new code against the old schema would error (500s).
+
+Exact order for the shared Supabase rollout (operator-run, later):
+1. **Dry-run (read-only):**
+   `DB_URL="postgresql://OPERATOR@POOLER_HOST:5432/postgres" server/migrations/run_migrations.sh --dry-run`
+   Expect: 0001–0004 shown `SKIP (recorded)`, 0005/0006/0007 shown `APPLY`.
+2. **Apply (operator):**
+   `DB_URL="postgresql://OPERATOR@POOLER_HOST:5432/postgres" server/migrations/run_migrations.sh`
+   Expect: 0005/0006/0007 applied atomically with their ledger rows; ledger = 0001..0007.
+3. **Deploy/restart the backend** (build + restart Express) **only after** step 2
+   succeeds, so the running code always matches a schema that has 0005–0007.
+4. Backend is read-only; no data backfill needed beyond the seed in 0007.
+
+Order summary: **migrate (0005→0006→0007) first, then restart the backend.** Never the
+reverse. Rolling back the backend (to the pre-Feature-2 build) is safe against the
+migrated schema because the new columns are additive and ignored by old code.
+
+### Post-rollout follow-up (not now)
+`verify_d1_connection.mjs` already expects the **post-0007 five-option catalog**
+(five Taco Suave protein options in confirmed order, all `priceDeltaCents 0`,
+`minSelect/maxSelect 1/1`, double-meat group delta 150, meats doubleable / grilled
+veggies not). It therefore does **not** need another edit. Because it asserts the
+post-0007 shape, it must only be run against a DB migrated **through 0007** — against
+the current pre-rollout shared DB it would (correctly) fail. **After** the shared
+rollout (step 2 above), it needs **execution** against the migrated shared DB — no
+further code change. It was deliberately NOT run this turn (would touch shared
+Supabase before rollout).
+
+
+---
+
+# Feature 2 — shared Supabase rollout: COMPLETED (user-executed)
+
+The following were **performed by the user against the shared Supabase database** and
+**reported with screenshots** as supporting evidence. They are recorded here as
+**user-executed checks**, not assistant-run. The assistant did not access shared
+Supabase.
+
+## Migration apply + ledger (operator)
+- Migrations **0005, 0006, 0007 applied successfully**; the ledger
+  (`public.schema_migrations`) now contains **0001–0007**.
+- A follow-up `run_migrations.sh --dry-run` **skipped all seven** (idempotent;
+  nothing left to apply).
+
+## Post-migration catalog (read-only SQL, operator)
+- All **five tacos** returned with the expected **prices** (Suave/Duro/Bravo 525,
+  Del Mar 675, Supreme 850), **selection limits** (min/max 1/1), **double-meat
+  surcharges** (Suave/Bravo 150, Supreme 299; Duro/Del Mar none), and **option
+  counts** (shared `protein` = 5; `protein-duro` = 2; `protein-seafood` = 2).
+
+## Backend against the live DB (verified TLS)
+- `npm run build` passed. `verify_d1_connection.mjs` passed against the shared DB:
+  `current_user = wana_menu_app` — this confirms the **login identity** the app
+  connects as (that it is the intended runtime login, not the operator). It does **not**
+  by itself prove read-only access; the **read-only / least-privilege** evidence comes
+  from the prior privilege-inspection and executed write-rejection tests (Phase F2
+  anon probe + `verify_c2_local.sh`: `anon`/`PUBLIC`/`authenticated` and the runtime
+  login are all denied INSERT/UPDATE/DELETE/TRUNCATE). The same run also observed **five
+  ordered Taco Suave options**, **zero protein deltas**, **min/max 1/1**, **double-meat
+  150**, **grilled veggies ineligible** for double meat, **unknown item → zero rows**, and
+  the **pool closed cleanly**.
+
+## Live category endpoint over local HTTP
+- After `npm start`, the user opened the actual category endpoint in the browser and
+  received **all five tacos in order** with the correct **extended JSON**
+  (`doubleMeat` per group, `doubleMeatAvailable` per option).
+
+## Two distinct connections (do not conflate)
+This live check exercised **two separate hops**, and only the second uses the
+verified-TLS Postgres connection:
+1. **Browser → Express over local HTTP** (`http://localhost:<port>/api/menu/
+   categories/original-tacos`). This hop is **plain local HTTP** on the loopback — it
+   is *not* a TLS-to-Supabase connection and is not the subject of the
+   `rejectUnauthorized: true` guarantee.
+2. **Express → Supabase/PostgreSQL over verified TLS** (the `pg` pool in `db.ts`,
+   `rejectUnauthorized: true`, project CA via `DB_CA_CERT`). This is the hop that
+   reads the catalog and whose certificate chain is verified. `verify_d1_connection.mjs`
+   confirmed the **login identity** (`current_user = wana_menu_app`); the **SELECT-only**
+   property of that login is established by the privilege/write-rejection tests (Phase
+   F2 + `verify_c2_local.sh`), not by the identity check alone.
+So "the browser received the five tacos" demonstrates the end-to-end path, but the
+**verified TLS** applies specifically to hop 2 (Express↔Supabase), not to hop 1
+(browser↔Express).
+
+## Status after rollout
+- **Backend (Feature 2): verified end-to-end** — migrations applied + tracked,
+  catalog correct, runtime read-only over verified TLS, and the live category
+  endpoint returns the authoritative extended JSON.
+- **Still INCOMPLETE:** all **frontend** work (reusable card, category hook, overlay,
+  in-place swap, double-meat UI) and all **browser interaction** checks (keyboard,
+  selection behavior, veggies-clears-double-meat, mobile). See the frontend handoff in
+  `.kiro/specs/original-tacos-catalog/tasks.md` (Track F).
+
+
+---
+
+# Feature 2 — frontend (Original Tacos category UI): verification
+
+Implemented under `src/` (Track F): single category fetch (`useOriginalTacos`),
+reconcile-before-filter (`menuWithCategory`), reusable `MenuItemCard` (compact row +
+expandable "Choose options", protein radios, optional double meat), stable ids in
+`menu.js`, and category loading/error+Retry/empty notices on the Menu page. The old
+per-item Taco Suave card/hook were removed (superseded).
+
+**Presentation correction (this session):** when options add a surcharge, the row no
+longer strikes out the base price. It shows two clearly labelled prices instead —
+a quiet "Base $5.25" and a prominent "With options $6.75" — with the configured total
+emphasised. The container wraps on narrow screens. The price calculation and the
+base-price max-price filtering are unchanged (only the display changed); build/lint
+re-run clean and the 17 tests still pass.
+
+## Automated checks (actual results)
+- `npm run build`: **clean**. `npm run lint`: **clean**.
+- `node --test`: **17/17 passed**, including:
+  - existing `menuExplorer.test.js` (filters) and `routes.test.js` (routing) — still green;
+  - new `originalTacosMenu.test.js` — success reconciliation (API order, local
+    image/popular preserved, matched by **id not name**), **authoritative omission**
+    (API-omitted item dropped; no static fallback), non-success (loading/error/empty)
+    excludes the category from filtering/counting while other categories stay intact,
+    **max-price uses the API base price**, and count agreement;
+  - new `configurePrice.test.js` — exactly-one/double-meat rules: double meat offered
+    only when BOTH `doubleMeat` non-null AND option eligible; switching to veggies
+    clears it; switching back to meat does NOT auto-enable; configured price = base +
+    option delta + eligible checked surcharge (150/150/299; none for duro/del-mar).
+- These are **pure-logic tests** run under Node's built-in test runner. The
+  `MenuItemCard` component imports and calls the exact helpers under test
+  (`configurePrice.js`), so this is not re-implemented/"mirrored" logic — but it is
+  **not** a rendered-component or browser test (no DOM test tooling is installed).
+
+## Frontend secret-leak scan (Feature 2 implementation) — CLEAN
+Ran after a fresh `npm run build`, over `src/` and the production bundle `dist/`:
+`grep` for connection strings (`postgres(ql)://`), `DATABASE_URL`, Supabase host
+(`*.supabase.co/com`), `service_role`/`sb_secret`, anon/service JWTs (`eyJ…`),
+`PGPASSWORD`, PEM private-key blocks, `DB_CA_CERT`, and the runtime role name
+(`wana_menu_app`). **Result: CLEAN** — none present. (An initial broad grep matched
+the substring "anon" inside minified React internals — a false positive, not a key.)
+The frontend holds only the relative `/api` URL; no secret values are printed here.
+This completes the frontend half of V2.
+
+## Live HTTP wiring check (NOT browser rendering)
+With both servers running (backend `:3001`, Vite `:5174`), the category request
+**through the dev proxy** returned HTTP 200 with all five tacos in order and the
+correct extended JSON (base prices 525/525/525/675/850; option counts 5/2/5/2/5;
+doubleMeat 150/null/150/null/299). This confirms the end-to-end **data wiring** my UI
+consumes. It is **HTTP/data verification only** — it does not exercise the rendered
+DOM, expansion, keyboard, selection, or surcharge behavior.
+
+## MANUAL browser checks — COMPLETED (user-performed, Safari, screenshots)
+Performed by the user in Safari and reported with screenshots. These are
+**user-performed browser checks** — NOT automated browser tests and NOT physical-phone
+testing (the layout check was a narrow desktop window).
+- [x] **Collapsed initial display + expansion:** rows render compact; "Choose options"
+      is collapsed by default and expands on activation.
+- [x] **Proteins initially unselected; exactly-one selection** per taco.
+- [x] **Independent selections between tacos** (one taco's choice doesn't affect others).
+- [x] **Selection preserved across collapse/reopen.**
+- [x] **Double-meat totals:** Suave and Bravo total **$6.75** (525 + 150); Supreme
+      totals **$11.49** (850 + 299).
+- [x] **Veggies clears double meat** and its surcharge; switching back to a meat does
+      **not** auto-re-enable it.
+- [x] **Duro / Del Mar never offer double meat.**
+- [x] **Search / filter / count** checks, including **max-price filtering on the base
+      price**.
+- [x] **Narrow desktop-window layout** (a resized window — not a physical phone).
+- [x] **Keyboard:** Option+Tab navigation and Space selection for the protein radios
+      and the double-meat checkbox.
+
+## Category-state browser checks — COMPLETED (user-performed, Safari)
+Observed by the user via the dev-only override below. User-performed Safari checks,
+distinct from automated tests; narrow-window (not physical-phone) distinction preserved.
+- [x] **loading → success:** loading displayed for about six seconds, then all five
+      tacos appeared. (User-observed; **no loading screenshot** was captured.)
+- [x] **successful empty `items: []`:** the empty-category notice displayed with **no
+      static replacement tacos**. (Screenshot provided.)
+- [x] **error → Retry → success:** error + Retry displayed, and the user reports Retry
+      recovery worked. **Setup detail:** to obtain the error state the user closed and
+      reopened the page after starting the override. (Recorded as the setup used; the
+      underlying cause is not asserted here.)
+- [x] **Revised price labels:** "Base $5.25" / "With options $6.75" are visible and
+      correct. (Screenshot provided.)
+
+### Local verification of category states (dev-only override; no Supabase change)
+Uses the git-ignored `vite.override.config.mjs` (not committed, not imported by the
+app, no production test switches). It intercepts ONLY
+`GET /api/menu/categories/original-tacos` at the Vite dev-server layer; every other
+request (other categories, Taco Suave item, assets) falls through to the normal proxy.
+The HTTP behavior of each mode was confirmed this session; the browser rendering is
+what remains to observe.
+
+Startup (two terminals, from `restaurant-menu-integration/`):
+```
+# Terminal 1 — backend (reads server/.env, verified TLS to Supabase; read-only)
+cd server && npm start           # http://localhost:3001
+
+# Terminal 2 — frontend with ONE category override mode (pick one):
+CATEGORY_OVERRIDE=loading npx vite --config vite.override.config.mjs
+CATEGORY_OVERRIDE=empty   npx vite --config vite.override.config.mjs
+CATEGORY_OVERRIDE=error   npx vite --config vite.override.config.mjs
+```
+Open the printed URL at `#/menu`, Original Tacos category. Expected browser results:
+- **loading:** the "Loading Original Tacos…" notice shows for ~6s, then the five
+  taco rows replace it (loading → success). Other categories render immediately.
+- **empty:** the "No Original Tacos are available right now" notice shows (a valid
+  200 `items: []`); every other category still renders and is usable.
+- **error:** an error notice with a **Retry** button shows (other categories still
+  usable); clicking **Retry** re-requests and the five taco rows load (the override
+  fails only the first request, so Retry recovers without restarting anything).
+
+#### Fix: category notice is visible regardless of search/price/popular filters
+Earlier, `showTacosNotice` was additionally gated by "no text/price filter active",
+which hid the loading/error/empty notice — and the **Retry** button during a failure —
+whenever a search or maximum-price filter was on. Fixed: the notice now shows whenever
+the **category selection is All or Original Tacos**, independent of search, maximum
+price, or popular-only. It stays hidden for any other selected category. The notice
+is a category-availability indicator, **separate from the matching-item count**
+(`resultCount` is computed from `filteredMenu` only, which never contains the notice),
+and unloaded/unavailable tacos remain excluded from results with no static fallback.
+
+**Re-verified with an ACTIVE filter — COMPLETED (user-performed, Safari):**
+- [x] With search **"taco"** and maximum price **"$10 or less"** applied, the **error
+      notice and Retry stayed visible** (not hidden by the active filters).
+- [x] Clicking the app's **Retry** restored **all five** Original Tacos and
+      **preserved both filters** (search and max price unchanged).
+- [x] The **matching-item count changed from 2 to 7** on recovery — confirming the
+      count reflects loaded, matching items and is separate from the notice.
+
+User-performed Safari check (not an automated test). This closes the
+category-notice-under-filters re-verification.
+
+Cleanup afterward: stop the override dev server (Ctrl+C in Terminal 2) and return to
+the normal `npm run dev` (committed `vite.config.js`, no override). The override file
+is git-ignored; leave it in place or `rm vite.override.config.mjs` — neither affects
+the repo. Its existing Taco Suave (`TACO_OVERRIDE`) modes are preserved.
+
+HTTP-layer confirmation this session (NOT browser rendering): loading → ~6.6s then
+200 with five items; empty → 200 `items: []`; error → 500 then a second request
+(Retry) → 200 with five items.

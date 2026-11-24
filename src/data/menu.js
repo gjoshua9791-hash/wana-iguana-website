@@ -4,11 +4,10 @@ export const menu = [
     note: "Served with chips",
     items: [
       {
-        // Stable marker matching the catalog ID. The render loop swaps this one
-        // row for the API-backed TacoSuaveCard; name/description/price here are
-        // only a fallback for pre-API filtering shape and are overlaid by the
-        // live API values before filtering (see MenuPage). Image, category, and
-        // popularity remain local presentation metadata.
+        // Stable catalog id: the Original Tacos category is API-backed, so this
+        // row is reconciled with the live API item by `id` and rendered via
+        // MenuItemCard. name/description/price here are a pre-API fallback shape;
+        // image and popularity remain local presentation metadata.
         id: "taco-suave",
         name: "Taco Suave",
         description: "Soft corn tortilla with choice of steak or chicken with lettuce, cheese, and pico de gallo.",
@@ -17,22 +16,28 @@ export const menu = [
         image: "/images/taco-suave.jpeg"
       },
       {
+        // Stable catalog id (additive): matches the API item so reconciliation
+        // keys on id, never on name. Local image/popular stay frontend metadata.
+        id: "taco-duro",
         name: "Taco Duro",
         description: "Crispy shell corn tortilla with choice of shredded beef or shredded chicken with cheese, lettuce, and our special tomato sauce. (Meat substitutions not allowed)",
         price: "$5.25",
         popular: true,
       },
       {
+        id: "taco-bravo",
         name: "Taco Bravo",
         description: "Choice of steak or chicken, beans, avocado, and our spicy bravo salsa.",
         price: "$5.25",
       },
       {
+        id: "taco-del-mar",
         name: "Taco Del Mar",
         description: "Choice of grilled fish (tilapia) or grilled shrimp with cabbage, pico de gallo, and our special white sauce.",
         price: "$6.75",
       },
       {
+        id: "taco-supreme",
         name: "Taco Supreme",
         description: "Large crispy flour tortilla with choice of shredded beef or grilled chicken with lettuce, cheese, sour cream, and guacamole.",
         price: "$8.50",

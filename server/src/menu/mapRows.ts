@@ -25,6 +25,18 @@ export interface MenuOption {
   id: string
   name: string
   priceDeltaCents: number
+  /**
+   * Feature 2: whether double meat may be applied when THIS option is the
+   * selected protein. Intrinsic to the option (meats true; grilled veggies /
+   * seafood false for this milestone's Original Tacos). Double meat is offerable
+   * only when this is true AND the group's `doubleMeat` is non-null.
+   */
+  doubleMeatAvailable: boolean
+}
+
+/** Feature 2: per-item double-meat surcharge descriptor for a protein group. */
+export interface DoubleMeat {
+  priceDeltaCents: number
 }
 
 export interface MenuModifierGroup {
@@ -32,6 +44,12 @@ export interface MenuModifierGroup {
   label: string
   minSelect: number
   maxSelect: number
+  /**
+   * Feature 2: `{ priceDeltaCents }` when this item offers double meat on this
+   * group, else `null`. The surcharge is per item (from the variant<->group
+   * link), not per option.
+   */
+  doubleMeat: DoubleMeat | null
   options: MenuOption[]
 }
 
@@ -90,6 +108,12 @@ export function mapRowsToItem(rows: readonly DefaultVariantRow[]): MenuItem | nu
           label: row.label ?? '',
           minSelect: row.min_select ?? 0,
           maxSelect: row.max_select ?? 1,
+          // Per-item double-meat surcharge from the variant<->group link. Present
+          // (non-null) only when the item offers double meat on this group.
+          doubleMeat: row.double_meat_price_delta_cents === null ||
+            row.double_meat_price_delta_cents === undefined
+            ? null
+            : { priceDeltaCents: row.double_meat_price_delta_cents },
           options: [],
         },
         groupSort: row.group_sort ?? 0,
@@ -105,6 +129,9 @@ export function mapRowsToItem(rows: readonly DefaultVariantRow[]): MenuItem | nu
         id: row.option_id,
         name: row.option_name ?? '',
         priceDeltaCents: row.price_delta_cents ?? 0,
+        // Per-option availability; a real option row is never SQL-null here, but
+        // default to false if absent so the field is always a boolean.
+        doubleMeatAvailable: row.double_meat_available ?? false,
       })
       acc.optionSorts.set(row.option_id, row.option_sort ?? 0)
     }
