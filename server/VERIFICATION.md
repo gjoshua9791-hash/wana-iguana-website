@@ -614,3 +614,108 @@ the repo. Its existing Taco Suave (`TACO_OVERRIDE`) modes are preserved.
 HTTP-layer confirmation this session (NOT browser rendering): loading → ~6.6s then
 200 with five items; empty → 200 `items: []`; error → 500 then a second request
 (Retry) → 200 with five items.
+
+---
+
+# Feature 3 — Burritos category: BACKEND verification (checkpoint)
+
+Backend-only checkpoint on `feature/burritos-catalog`. Frontend is reserved for a
+teammate (see `.kiro/specs/burritos-catalog/frontend-handoff.md`). No frontend
+source or root frontend config was touched. No shared Supabase migration was run.
+
+## What changed (additive)
+- `0008_double_portion_column.sql` — adds nullable
+  `modifier_option.double_portion_price_delta_cents` (CHECK NULL OR >= 0). No data,
+  no table change, covered by menu_backend's existing SELECT grant.
+- `0009_seed_burritos.sql` — seeds the seven burritos, base prices, the three
+  protein shapes (`burrito-protein` shared 1/1; `classic-protein` 0/1; seafood
+  `delmar-extra`/`fish-extra` 0/1), the reusable `wet-upgrade` 0/1, and all
+  per-option double-portion values.
+- `run_migrations.sh` — fixed list extended to 0001–0009.
+- `queries.ts` / `mapRows.ts` — SELECT + emit the additive per-option
+  `doublePortion` field; taco fields unchanged.
+
+## What each check exercises (do not conflate)
+- `verify_d2_mapper.mjs` — PURE mapper unit test (no DB, no HTTP). **12 passed.**
+- `verify_f3_http.mjs` — INJECTED HTTP test of the real route+mapper over a local
+  TCP listener using fake query fns; NOT a DB or TLS test. **10 passed.**
+- `verify_f2_http.mjs` — unchanged Feature-2 injected HTTP test. **9 passed.**
+- `verify_f3_burritos.sh` — LIVE isolated-DB test against throwaway local databases
+  (never Supabase); real runner; fresh + upgrade paths. **ALL PASSED.**
+- `verify_c2_local.sh`, `verify_d4_endpoint.sh` — isolated-DB runner/endpoint
+  invariants. **ALL PASSED** after updating c2's hard-coded ledger expectation
+  from 0001–0007 to 0001–0009 (invariant unchanged; d4 asserts only taco data).
+
+## Isolated-DB results (actual) — `verify_f3_burritos.sh`
+- PATH A (fresh): real runner applied all nine; ledger = 0001..0009; the 0008
+  column present; the full Burrito contract asserted (seven items + prices; Group A
+  deltas 0 / meats double 299 / veggies NULL; Classic +250/+299/+349 with doubles
+  299/349; seafood extras +349 double NULL; wet +429 double NULL; A required 1/1,
+  others 0/1; Del Mar/Grilled Fish have NO required protein group; no `wet`
+  menu_item).
+- PATH B (upgrade): applied 0001–0007 first, then the real runner SKIPPED 7 and
+  APPLIED exactly 0008,0009; pre-upgrade the column and burritos were absent; after
+  upgrade the identical Burrito contract held; a second runner run applied nothing.
+- **Original Tacos unchanged on BOTH paths:** five items in order; Taco Suave base
+  525; double meat 150; five protein options; taco options' new column is NULL.
+- Cleanup dropped both throwaway DBs and the menu_backend role.
+
+## Rollout dependency (operator, later; NOT executed here)
+See design §6a. Order: dry-run → apply 0008 then 0009 to shared Supabase (as
+`postgres`) → deploy/restart backend. Code in `queries.ts` selects
+`double_portion_price_delta_cents`, which exists only after 0008 — do NOT run the
+new backend against a database missing 0008. Backend rollback is safe; the additive
+column/seed can remain.
+
+## Secret-leak scan — CLEAN
+Staged backend files scanned (migrations, queries.ts, mapRows.ts, verify_f3_*,
+spec docs). No credentials, connection strings, tokens, or secrets. `server/.env`
+and `vite.override.config.mjs` remain git-ignored and were never read or printed.
+
+---
+
+# Feature 3 — shared Supabase rollout: COMPLETED (user-executed)
+
+Performed by the migration **operator** against the shared Supabase dev DB, over
+the verified-TLS session-pooler connection, after the read-only preflight
+(`server/migrations/preflight_0008_0009_readonly.sql`) and a dry-run confirmed the
+expected pre-rollout baseline. The following are **user-executed** results reported
+back, not automated checks run from this checkpoint.
+
+## Migration apply + ledger (operator)
+- Applied `0008_double_portion_column.sql` then `0009_seed_burritos.sql` in order
+  (runner, each atomic with its ledger INSERT).
+- Ledger now contains **0001–0009** (all nine recorded).
+- Follow-up `run_migrations.sh --dry-run` **SKIPPED all nine** (nothing left to
+  apply) — confirms idempotency and that the ledger prefix is complete.
+
+## Post-migration catalog (read-only, operator)
+- **Seven burritos** present with the expected base prices (Fajita 1549, Super
+  1349, Grande 1349, Bravo 1349, Del Mar 1599, Grilled Fish 1599, Classic 929).
+- Each burrito exposes **two modifier groups** (protein/extra + `wet-upgrade`), as
+  seeded.
+
+## Backend against the live DB (verified TLS)
+- Backend **build passed**.
+- `verify_d1_connection.mjs` **passed as `wana_menu_app`** (the read-only runtime
+  login; verified-TLS connection to shared Supabase). This is the live DB-backed
+  connection check — distinct from the injected HTTP tests above.
+
+## Live category endpoints (user-performed)
+- `GET /api/menu/categories/burritos` and `GET /api/menu/categories/original-tacos`
+  both returned the **expected live JSON** (burritos now populated; Original Tacos
+  unchanged).
+
+## Two distinct connections (do not conflate)
+- **Operator** (`postgres.<project_ref>`, session pooler, verify-full): applied
+  0008/0009 and read the catalog. Used only for the rollout.
+- **Runtime** (`wana_menu_app`, read-only, verified TLS): what the backend uses and
+  what `verify_d1_connection.mjs` exercised. No write path.
+
+## Status after rollout
+- **Backend (Feature 3): verified end-to-end** — migrations applied + tracked
+  (0001–0009), live endpoints serve the seeded Burritos, runtime role read-only.
+- **Frontend (Track F): NOT started** — reserved for the teammate per
+  `frontend-handoff.md`. Intentionally left incomplete.
+- No backend restart/deploy, merge, or deploy performed as part of this checkpoint
+  beyond what the operator did to apply the rollout.

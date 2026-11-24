@@ -117,12 +117,12 @@ echo
 
 echo "=== dry-run on a FRESH db creates nothing (read-only) ==="
 # Invariant: dry-run is read-only (no ledger created) and shows EVERY migration in
-# the runner's fixed order as pending. That order is now 0001-0007 (7 files).
+# the runner's fixed order as pending. That order is now 0001-0009 (9 files).
 out="$(DB_URL="$URL_DRY" PSQL="$PSQL" "$MIGDIR/run_migrations.sh" --dry-run 2>&1)"; rc=$?
 ledger_present="$("$PSQL" -X "$URL_DRY" -At -c "select to_regclass('public.schema_migrations') is not null")"
 applies="$(printf '%s' "$out" | grep -c 'APPLY:')"
-if [ "$rc" -eq 0 ] && [ "$ledger_present" = "f" ] && [ "$applies" = "7" ]; then
-  pass "dry-run fresh: exit 0, no ledger created, all 7 shown pending"
+if [ "$rc" -eq 0 ] && [ "$ledger_present" = "f" ] && [ "$applies" = "9" ]; then
+  pass "dry-run fresh: exit 0, no ledger created, all 9 shown pending"
 else
   fail "dry-run fresh: rc=$rc ledger_present=$ledger_present applies=$applies"
 fi
@@ -134,14 +134,14 @@ printf '%s\n' "$runlog" | sed 's/^/  /'
 [ "$rc" -eq 0 ] && pass "runner exit 0" || { fail "runner exit $rc"; }
 # menu_backend was created by 0003 during this run -> track for cleanup
 if role_exists menu_backend; then MENU_BACKEND_CREATED=1; fi
-# The runner's fixed order is now 0001-0007 (Feature 2 added 0005-0007). C2's
+# The runner's fixed order is now 0001-0009 (Feature 3 added 0008-0009). C2's
 # invariant is "the runner applies its full documented order, in order, and is
-# idempotent" — so assert the full seven-migration ledger rather than the old four.
+# idempotent" — so assert the full nine-migration ledger rather than the old seven.
 ledger="$("$PSQL" -X "$URL" -At -c "select string_agg(filename,',' order by filename) from public.schema_migrations")"
-exp_ledger="0001_create_catalog.sql,0002_one_active_default.sql,0003_access_policies.sql,0004_seed_taco_suave.sql,0005_menu_item_category.sql,0006_double_meat_columns.sql,0007_seed_original_tacos.sql"
+exp_ledger="0001_create_catalog.sql,0002_one_active_default.sql,0003_access_policies.sql,0004_seed_taco_suave.sql,0005_menu_item_category.sql,0006_double_meat_columns.sql,0007_seed_original_tacos.sql,0008_double_portion_column.sql,0009_seed_burritos.sql"
 [ "$ledger" = "$exp_ledger" ] \
-  && pass "ledger lists all seven in order" || fail "ledger unexpected: $ledger"
-LEDGER_N=7
+  && pass "ledger lists all nine in order" || fail "ledger unexpected: $ledger"
+LEDGER_N=9
 echo
 
 echo "=== dry-run on the MIGRATED db changes nothing, shows all recorded as SKIP ==="

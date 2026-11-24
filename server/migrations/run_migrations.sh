@@ -6,7 +6,8 @@
 #   0001_create_catalog.sql -> 0002_one_active_default.sql
 #   -> 0003_access_policies.sql -> 0004_seed_taco_suave.sql
 #   -> 0005_menu_item_category.sql -> 0006_double_meat_columns.sql
-#   -> 0007_seed_original_tacos.sql
+#   -> 0007_seed_original_tacos.sql -> 0008_double_portion_column.sql
+#   -> 0009_seed_burritos.sql
 # Each migration body AND its ledger INSERT are applied in ONE psql transaction
 # (psql -X --single-transaction -v ON_ERROR_STOP=1), so schema + ledger commit
 # atomically. Migrations already recorded in public.schema_migrations are SKIPPED.
@@ -40,6 +41,8 @@ MIGRATIONS=(
   0005_menu_item_category.sql
   0006_double_meat_columns.sql
   0007_seed_original_tacos.sql
+  0008_double_portion_column.sql
+  0009_seed_burritos.sql
 )
 
 # --- 1a. Parse/validate arguments BEFORE any database interaction -----------

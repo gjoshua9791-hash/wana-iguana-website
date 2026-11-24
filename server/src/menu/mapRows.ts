@@ -26,16 +26,31 @@ export interface MenuOption {
   name: string
   priceDeltaCents: number
   /**
-   * Feature 2: whether double meat may be applied when THIS option is the
-   * selected protein. Intrinsic to the option (meats true; grilled veggies /
-   * seafood false for this milestone's Original Tacos). Double meat is offerable
-   * only when this is true AND the group's `doubleMeat` is non-null.
+   * Feature 2 (TACO double-meat): whether double meat may be applied when THIS
+   * option is the selected protein. Intrinsic to the option (meats true; grilled
+   * veggies / seafood false for Original Tacos). For the taco model, double meat is
+   * offerable only when this is true AND the group's `doubleMeat` is non-null. For
+   * burritos this stays false; use `doublePortion` instead.
    */
   doubleMeatAvailable: boolean
+  /**
+   * Feature 3 (per-option double portion): `{ priceDeltaCents }` when a second
+   * portion of THIS option can be added, else `null` (not doubleable). The amount
+   * is per option (meats 299, seafood 349, veggies/none null for burritos). This
+   * is the generalization that the taco group-level `doubleMeat` could not express;
+   * it is independent of and takes precedence over the taco fields when present
+   * (see frontend-handoff.md precedence rules).
+   */
+  doublePortion: DoublePortion | null
 }
 
 /** Feature 2: per-item double-meat surcharge descriptor for a protein group. */
 export interface DoubleMeat {
+  priceDeltaCents: number
+}
+
+/** Feature 3: per-option double-portion surcharge descriptor. */
+export interface DoublePortion {
   priceDeltaCents: number
 }
 
@@ -132,6 +147,12 @@ export function mapRowsToItem(rows: readonly DefaultVariantRow[]): MenuItem | nu
         // Per-option availability; a real option row is never SQL-null here, but
         // default to false if absent so the field is always a boolean.
         doubleMeatAvailable: row.double_meat_available ?? false,
+        // Per-option double-portion surcharge (Feature 3). null unless the column
+        // holds a non-null integer; never fabricated.
+        doublePortion: row.double_portion_price_delta_cents === null ||
+          row.double_portion_price_delta_cents === undefined
+          ? null
+          : { priceDeltaCents: row.double_portion_price_delta_cents },
       })
       acc.optionSorts.set(row.option_id, row.option_sort ?? 0)
     }
