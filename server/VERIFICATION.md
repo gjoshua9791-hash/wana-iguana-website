@@ -671,3 +671,51 @@ column/seed can remain.
 Staged backend files scanned (migrations, queries.ts, mapRows.ts, verify_f3_*,
 spec docs). No credentials, connection strings, tokens, or secrets. `server/.env`
 and `vite.override.config.mjs` remain git-ignored and were never read or printed.
+
+---
+
+# Feature 3 — shared Supabase rollout: COMPLETED (user-executed)
+
+Performed by the migration **operator** against the shared Supabase dev DB, over
+the verified-TLS session-pooler connection, after the read-only preflight
+(`server/migrations/preflight_0008_0009_readonly.sql`) and a dry-run confirmed the
+expected pre-rollout baseline. The following are **user-executed** results reported
+back, not automated checks run from this checkpoint.
+
+## Migration apply + ledger (operator)
+- Applied `0008_double_portion_column.sql` then `0009_seed_burritos.sql` in order
+  (runner, each atomic with its ledger INSERT).
+- Ledger now contains **0001–0009** (all nine recorded).
+- Follow-up `run_migrations.sh --dry-run` **SKIPPED all nine** (nothing left to
+  apply) — confirms idempotency and that the ledger prefix is complete.
+
+## Post-migration catalog (read-only, operator)
+- **Seven burritos** present with the expected base prices (Fajita 1549, Super
+  1349, Grande 1349, Bravo 1349, Del Mar 1599, Grilled Fish 1599, Classic 929).
+- Each burrito exposes **two modifier groups** (protein/extra + `wet-upgrade`), as
+  seeded.
+
+## Backend against the live DB (verified TLS)
+- Backend **build passed**.
+- `verify_d1_connection.mjs` **passed as `wana_menu_app`** (the read-only runtime
+  login; verified-TLS connection to shared Supabase). This is the live DB-backed
+  connection check — distinct from the injected HTTP tests above.
+
+## Live category endpoints (user-performed)
+- `GET /api/menu/categories/burritos` and `GET /api/menu/categories/original-tacos`
+  both returned the **expected live JSON** (burritos now populated; Original Tacos
+  unchanged).
+
+## Two distinct connections (do not conflate)
+- **Operator** (`postgres.<project_ref>`, session pooler, verify-full): applied
+  0008/0009 and read the catalog. Used only for the rollout.
+- **Runtime** (`wana_menu_app`, read-only, verified TLS): what the backend uses and
+  what `verify_d1_connection.mjs` exercised. No write path.
+
+## Status after rollout
+- **Backend (Feature 3): verified end-to-end** — migrations applied + tracked
+  (0001–0009), live endpoints serve the seeded Burritos, runtime role read-only.
+- **Frontend (Track F): NOT started** — reserved for the teammate per
+  `frontend-handoff.md`. Intentionally left incomplete.
+- No backend restart/deploy, merge, or deploy performed as part of this checkpoint
+  beyond what the operator did to apply the rollout.

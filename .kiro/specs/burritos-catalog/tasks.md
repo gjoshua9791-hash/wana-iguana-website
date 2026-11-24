@@ -122,15 +122,19 @@ Author `0009_seed_burritos.sql` with the confirmed data (three protein shapes + 
   for existing fields is unchanged; existing backend tests pass.
 - **Manual step?** No.
 
-- [ ] 6. B4 — 🔧 Apply 0008 + 0009 to shared Supabase (operator, tracked)
+- [x] 6. B4 — 🔧 Apply 0008 + 0009 to shared Supabase (operator, tracked) — DONE (user-executed)
 - **AC refs:** AC11
 - **Files:** none (operator action); ledger records `0008`,`0009`.
 - **Depends on:** 2 (B1), 3 (B2), 4 (B2a)
 - **Done when:** dry-run shows only `0008`/`0009` pending, then a real run records them;
   ledger = `0001`–`0009`; a read-only SELECT confirms the new column values + rows;
   access controls unchanged.
-- **Manual step?** 🔧 Yes — the **operator** applies this to shared Supabase. **Not in
-  planning; not authorized by any formatting or spec change.**
+- **Manual step?** 🔧 Yes — the **operator** applied this to shared Supabase.
+- **Result (user-executed):** 0008/0009 applied; ledger = `0001`–`0009`; follow-up
+  dry-run skipped all nine; seven burritos present with expected prices and two
+  modifier groups each; `verify_d1_connection.mjs` passed as `wana_menu_app`; both
+  category endpoints returned the expected live JSON. Recorded in
+  `server/VERIFICATION.md` (Feature 3 — shared Supabase rollout).
 
 ### Track F — Frontend (all under `src/`, owned by the teammate)
 

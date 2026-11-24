@@ -181,11 +181,11 @@ burritos). Examples (confirmed values):
   "modifierGroups": [
     { "id": "burrito-protein", "label": "Choose one", "minSelect": 1, "maxSelect": 1, "doubleMeat": null,
       "options": [
-        { "id": "steak",            "name": "Steak",            "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": { "priceDeltaCents": 299 } },
-        { "id": "chicken",          "name": "Chicken",          "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": { "priceDeltaCents": 299 } },
-        { "id": "shredded-beef",    "name": "Shredded Beef",    "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": { "priceDeltaCents": 299 } },
-        { "id": "shredded-chicken", "name": "Shredded Chicken", "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": { "priceDeltaCents": 299 } },
-        { "id": "grilled-veggies",  "name": "Grilled Veggies",  "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": null }
+        { "id": "burrito-steak",            "name": "Steak",            "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": { "priceDeltaCents": 299 } },
+        { "id": "burrito-chicken",          "name": "Chicken",          "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": { "priceDeltaCents": 299 } },
+        { "id": "burrito-shredded-beef",    "name": "Shredded Beef",    "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": { "priceDeltaCents": 299 } },
+        { "id": "burrito-shredded-chicken", "name": "Shredded Chicken", "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": { "priceDeltaCents": 299 } },
+        { "id": "burrito-grilled-veggies",  "name": "Grilled Veggies",  "priceDeltaCents": 0, "doubleMeatAvailable": false, "doublePortion": null }
       ] },
     { "id": "wet-upgrade", "label": "Make it wet?", "minSelect": 0, "maxSelect": 1, "doubleMeat": null,
       "options": [ { "id": "wet", "name": "Wet (red sauce + melted cheese)", "priceDeltaCents": 429, "doubleMeatAvailable": false, "doublePortion": null } ] }

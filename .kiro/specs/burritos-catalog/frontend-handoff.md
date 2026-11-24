@@ -11,6 +11,15 @@ shape) and `server/migrations/verify_f3_burritos.sh` (schema+seed on isolated
 local DBs). If something here disagrees with the running API, the API wins —
 tell the backend owner.
 
+**Scope of this milestone: display + configuration only.** Your job is to render
+the Burritos category and let the customer *configure* an item (pick protein,
+toggle double portion, toggle wet) and see the computed price update. There is
+**no cart, no "Add item"/"Add to order" button, and no checkout** in this
+milestone — do not implement them, and do not treat them as a prerequisite for
+anything here. "Configured price" means the live total shown on the card as the
+customer changes selections; it is a display value, not an order. This mirrors
+the Original Tacos milestone, which is also configure-and-display only.
+
 **Golden rules**
 1. Never hard-code a price or a surcharge in the frontend. Every amount comes
    from the API, in integer cents.
@@ -79,23 +88,36 @@ portion of that one option.
 ## 3. Precedence: new `doublePortion` vs legacy `doubleMeat` / `doubleMeatAvailable`
 
 There are two double-portion metadata models in the response. They coexist; both
-are always present on every option/group. Decide per group which control to show:
+are always present on every option/group. The decision is **per selected option**,
+in this strict order. Evaluate it against the option the customer has selected in
+the group:
 
-| Condition on a group/option | What to render |
-|---|---|
-| `group.doubleMeat` is non-null | Taco model: one group-level "Double meat (+doubleMeat.priceDeltaCents)" control, enabled only for options where `option.doubleMeatAvailable === true`. |
-| `group.doubleMeat` is null AND a selected option has non-null `option.doublePortion` | Burrito model: a per-option "Double this (+option.doublePortion.priceDeltaCents)" control for that selected option. |
-| `group.doubleMeat` is null AND the selected option's `doublePortion` is null | No double control. |
+1. **If the selected `option.doublePortion` is non-null → use it.** Offer one
+   "Double this (+`option.doublePortion.priceDeltaCents`)" control. Ignore
+   `group.doubleMeat` and `option.doubleMeatAvailable` entirely for this option.
+2. **Else, if `group.doubleMeat` is non-null AND the selected
+   `option.doubleMeatAvailable === true` → use the legacy taco path.** Offer one
+   "Double meat (+`group.doubleMeat.priceDeltaCents`)" control.
+3. **Else → no double control** (the selected option cannot be doubled).
 
-Rule of thumb: **`doublePortion` takes precedence when present; the taco
-`doubleMeat` path applies only to groups whose `doubleMeat` is non-null.** For
-every burrito group, `doubleMeat` is null and `doubleMeatAvailable` is false, so
-burritos always use the `doublePortion` path. For Original Tacos, `doublePortion`
-is null on every option and the taco path is used — do not change taco rendering.
+**Never charge both.** At most one double surcharge applies to a selected option:
+either its own `doublePortion` amount, or the group's `doubleMeat` amount, never
+the sum. The legacy `doubleMeat` path is used **only** when `doublePortion` is
+null for that option AND `doubleMeatAvailable` is true.
 
-A single generic component can drive both: if `group.doubleMeat != null` use the
-group amount gated by `option.doubleMeatAvailable`; else use
-`option.doublePortion`. Never read both for the same control.
+How this lands on the actual seeded data (do not change this behavior):
+
+- **Every burrito option:** `group.doubleMeat` is null and `doubleMeatAvailable`
+  is false. Doubleable burrito options carry a non-null `doublePortion` (step 1);
+  the rest carry null (step 3). The legacy path never fires for burritos.
+- **Every Original Tacos option:** `doublePortion` is null, so step 1 never fires;
+  the taco group's `doubleMeat` plus per-option `doubleMeatAvailable` drive the
+  control exactly as in Feature 2 (step 2 or 3). Taco rendering is unchanged.
+
+A single generic component implements the three steps above. It reads
+`option.doublePortion` first and only falls back to the `group.doubleMeat` /
+`option.doubleMeatAvailable` pair when `doublePortion` is null. It never reads
+both amounts for one control and never adds them together.
 
 ---
 
@@ -262,10 +284,15 @@ carries `doublePortion: null` on every option. Render it exactly as before.
 
 ---
 
-## 7. Confirmed price examples (compute from the API, do not hard-code)
+## 7. Confirmed configured-price examples (compute from the API, do not hard-code)
 
-Price = `basePriceCents` + selected option `priceDeltaCents` + (if doubled) that
-option's `doublePortion.priceDeltaCents` + (if wet) `wet.priceDeltaCents` (429).
+These are the **displayed** totals for a given set of selections (the live price
+on the card), not order lines. At most one double surcharge applies per selected
+option (see §3): never add both `doublePortion` and `doubleMeat`.
+
+Configured price = `basePriceCents` + selected option `priceDeltaCents` + (if
+doubled) that option's `doublePortion.priceDeltaCents` + (if wet)
+`wet.priceDeltaCents` (429).
 
 Classic Burrito (`classic-burrito`, base 929):
 | selection | computation | total (cents) |
@@ -289,7 +316,7 @@ nothing to add for doubling.
 ## 8. Frontend acceptance checklist
 
 - [ ] `burritos` renders all seven items with correct base prices read from the API (no hard-coded amounts anywhere).
-- [ ] Group A items (Fajita/Super/Grande/Bravo) require exactly one protein before the item can be added; the four meats offer a +299 double control; grilled veggies offers none.
+- [ ] Group A items (Fajita/Super/Grande/Bravo) treat the protein group as required-exactly-one for a *complete configuration* (it starts unselected; the computed price reflects the chosen protein); the four meats offer a +299 double control; grilled veggies offers none. (No "add to cart" is in scope — this is configuration state only.)
 - [ ] Classic renders the optional added-protein group; each option's add price and double surcharge come from `priceDeltaCents` / `doublePortion`; veggies and "no protein" show no double control.
 - [ ] Del Mar / Grilled Fish show NO required protein group; they show one optional +349 extra-portion control with no further doubling; included seafood is not a selectable option.
 - [ ] Every burrito shows the optional wet upgrade (+429) as a modifier, independent of protein/double; there is no standalone "Wet Burrito Add On" card.
@@ -310,7 +337,20 @@ nothing to add for doubling.
 - `server/src/menu/queries.ts` — the SELECT that feeds the mapper (field names).
 - `server/verify_f3_http.mjs` — a runnable example of the shape you will receive.
 
-> Rollout note: the API only returns burritos after the operator applies
-> migrations 0008 then 0009 to the shared database. Until then `burritos` is an
-> empty category (200, `items: []`). Build against `verify_f3_http.mjs` / the
-> examples above; do not block on the shared DB rollout.
+> **Rollout / schema-dependency note.** The new backend build selects the
+> `double_portion_price_delta_cents` column (migration 0008). It therefore
+> **requires 0008 to be applied before it runs at all** — not just before
+> burritos appear. Running the new backend against a database that is still at
+> 0001–0007 makes **every** menu query fail (the column does not exist), which
+> surfaces as 500s for `original-tacos` and single-item routes too, not merely an
+> empty burritos list.
+>
+> The correct operator order is: apply **0008 then 0009**, *then* deploy/restart
+> the new backend (design §6a). Do not infer schema compatibility from a
+> `burritos` call returning `200 { "items": [] }`: an empty burritos response
+> before seeding is produced by the *old* backend (pre-0008) and says nothing
+> about whether the new backend's column-dependent queries will work. Only 0008
+> being applied establishes that.
+>
+> For frontend work you do not need the shared DB at all — build against
+> `verify_f3_http.mjs` and the examples above; do not block on the rollout.
